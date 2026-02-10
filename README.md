@@ -73,6 +73,10 @@ do postgres tem uma pasta chamada docker-entrypoint-initdb.d, que executa qualqu
 
 É Importante criar arquivos .env nas pastas indicadas para funcionar corretamente também.
 
+Para isso, copie os arquivos .env.exemple para um arquivo .env, e preencha os campos
+
+`cp .env.example .env`
+
 A Secret_KEY do Django deve ser obtida diretamente comigo
 
 **DEPLOY**
