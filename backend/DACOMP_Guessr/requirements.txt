@@ -1,0 +1,11 @@
+Django>=4.2
+psycopg2
+channels
+daphne
+python-decouple
+asgiref
+djangorestframework
+django-filter
+Pillow
+requests
+django-cors-headers
