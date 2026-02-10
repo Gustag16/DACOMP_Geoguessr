@@ -41,3 +41,8 @@ Backend
 Na pasta raiz do projeto, rode
 
 'docker compose up'
+
+
+É Importante criar arquivos .env nas pastas indicadas para funcionar corretamente também.
+
+A Secret_KEY do Django deve ser obtida diretamente comigo
