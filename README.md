@@ -46,3 +46,11 @@ Na pasta raiz do projeto, rode
 É Importante criar arquivos .env nas pastas indicadas para funcionar corretamente também.
 
 A Secret_KEY do Django deve ser obtida diretamente comigo
+
+**DEPLOY**
+
+Para o deploy, a ideia inicial é:
+  frontend: Vercel
+  backend e bd: Algum pc com tunelamento do cloudfare
+
+Importante verificar a viabilidade de usar uma cloud, como a magalu (contanto que seja gratuito k)
