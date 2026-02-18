@@ -7,7 +7,7 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     libpq-dev 
 
-WORKDIR ./
+WORKDIR /app
 
 # Copia e instala as dependências
 COPY requirements.txt .
@@ -16,8 +16,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copia o restante do código
 COPY . .
 
-
 EXPOSE 8000
 
-# Comando padrão
-CMD ["sh", "-c", "python manage.py makemigrations && python manage.py migrate && python manage.py runserver 0.0.0.0:8000"]
+ENTRYPOINT ["sh", "/app/entrypoint.sh"]

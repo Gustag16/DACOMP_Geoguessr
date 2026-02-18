@@ -75,7 +75,7 @@ export default function AddLocation() {
             console.log(response.headers['content-disposition'])
             const arrayBuffer = await blob.arrayBuffer();
             const tags = ExifReader.load(arrayBuffer);
-            
+            console.log('EXIF tags:', tags);
 
         setLocation(prev => ({...prev, place_name: tags.ImageDescription ? tags.ImageDescription.description : 'Unknown Place'}));
         const reader = new FileReader()
