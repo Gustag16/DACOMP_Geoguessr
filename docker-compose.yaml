@@ -10,7 +10,7 @@ services:
     volumes:
       - postgres_data_dev:/var/lib/postgresql/data
       - ./Location_satellite.csv:/docker-entrypoint-initdb.d/Location_satellite.csv
-     # - ./init_db.sh:/docker-entrypoint-initdb.d/init_db.sh
+      - ./init_db.sh:/docker-entrypoint-initdb.d/init_db.sh
     ports:
       - "5432:5432"
 
