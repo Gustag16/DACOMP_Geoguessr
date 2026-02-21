@@ -1,12 +1,13 @@
 // Fica no lobby antes da partida começar. tem o id da sala, 
 // Mostra os jogadores e permite customização da aparencia e nome
+import CodeBox from '../components/Lobby/CodeBox'
+
 
 export default function Lobby() {
-    const code = "123456"
+    const code = "ABCD1234" // 
     return (
         <div>
-            <h1>Code: {code}</h1>
-            <h2>Total Players</h2>            
+            <CodeBox code={code} />        
         </div>
     )
 }
