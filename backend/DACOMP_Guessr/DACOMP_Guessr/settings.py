@@ -145,10 +145,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # CORS
 
 # CSRF Configuration
-CSRF_COOKIE_HTTPONLY = False  # Permite JavaScript acessar
-CSRF_COOKIE_SAMESITE = 'None'  # Funciona com cross-site em HTTP
+CSRF_COOKIE_HTTPONLY = True  # Permite JavaScript acessar
+CSRF_COOKIE_SAMESITE = 'Lax'  # Funciona com cross-site em HTTP
 CSRF_COOKIE_AGE = 31449600  # 1 ano
-CSRF_COOKIE_NAME = 'csrf_token'
+CSRF_COOKIE_NAME = 'csrftoken'
 CSRF_COOKIE_DOMAIN = None
 
 if DEBUG:
@@ -159,6 +159,15 @@ CSRF_TRUSTED_ORIGINS = [
     'http://localhost:8000',
     'http://127.0.0.1:5173',
     'http://127.0.0.1:8000',
+    'https://localhost:5173',
+    'https://localhost:8000',
+    'https://127.0.0.1:5173',
+    'https://127.0.0.1:8000',
+    'http://*.localhost:5173',
+    'http://*.localhost:8000',
+    'http://*.127.0.0.1:5173',
+    'http://*.127.0.0.1:8000',
+
 ]
 
 # CORS Configuration

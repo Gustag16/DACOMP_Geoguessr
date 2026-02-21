@@ -7,7 +7,7 @@ export default function Lobby() {
     const code = "ABCD1234" // 
     return (
         <div>
-            <CodeBox code={code} />        
+            <CodeBox code={code} />
         </div>
     )
 }

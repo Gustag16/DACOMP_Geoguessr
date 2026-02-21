@@ -15,11 +15,13 @@ from DACOMP_Guessr.settings import CSRF_COOKIE_AGE
 from DACOMP_Guessr import settings
 # https://drive.usercontent.google.com/download?id=FILE ID
 
+
 @ensure_csrf_cookie
 def get_csrf_token(request):
     token = get_token(request)
     response = JsonResponse({'csrf_token': token})
     return response
+
 
 @ensure_csrf_cookie
 def set_csrf_token(request):
@@ -32,18 +34,19 @@ def set_csrf_token(request):
         samesite='None',
         secure=settings.CSRF_COOKIE_SECURE  # Usa a configuração do settings
     )
-    
+
     return response
+
 
 def set_csrf_cookie_view(request):
     """View alternativa que dá mais controle sobre o cookie"""
     from django.conf import settings
-    
+
     response = JsonResponse({"status": "ok"})
-    
+
     # Gera o token
     token = get_token(request)
-    
+
     # Configura o cookie manualmente
     cookie_kwargs = {
         'key': settings.CSRF_COOKIE_NAME,
@@ -52,25 +55,34 @@ def set_csrf_cookie_view(request):
         'httponly': settings.CSRF_COOKIE_HTTPONLY,
         'samesite': settings.CSRF_COOKIE_SAMESITE,
     }
-    
+
     # Apenas adiciona secure se True
     if settings.CSRF_COOKIE_SECURE:
         cookie_kwargs['secure'] = True
-    
+
     response.set_cookie(**cookie_kwargs)
-    
+
     # Também envia no header para o frontend pegar
     response['X-CSRFToken'] = token
-    
+
     return response
 
-#@csrf_exempt
+# @csrf_exempt
+
+# === LOCATION ====
+
 class LocationViewSet(viewsets.ModelViewSet):
     queryset = Location.objects.all()
     serializer_class = LocationSerializer
-    
+
+
 def get_location(request):
-     return HttpResponse(status=200)
+    return HttpResponse(status=200)
+
+# ===================
+
+# === PROXY ====
+
 
 def proxy_drive(request):
     file_id = request.GET.get("id")
@@ -92,3 +104,9 @@ def proxy_drive(request):
     response["Content-Disposition"] = f'attachment; filename="{filename}"'
 
     return response
+
+# ==================
+
+# === Session ====
+
+#class SessionViewSet:
