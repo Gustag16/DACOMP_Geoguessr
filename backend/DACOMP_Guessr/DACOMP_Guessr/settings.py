@@ -149,7 +149,7 @@ CSRF_COOKIE_HTTPONLY = True  # Permite JavaScript acessar
 CSRF_COOKIE_SAMESITE = 'Lax'  # Funciona com cross-site em HTTP
 CSRF_COOKIE_AGE = 31449600  # 1 ano
 CSRF_COOKIE_NAME = 'csrftoken'
-CSRF_COOKIE_DOMAIN = None
+CSRF_COOKIE_DOMAIN = '127.0.0.1'
 
 if DEBUG:
     CSRF_COOKIE_SECURE = False
@@ -172,10 +172,18 @@ CSRF_TRUSTED_ORIGINS = [
 
 # CORS Configuration
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "http://localhost:8000",
-    "http://127.0.0.1:5173",
-    "http://127.0.0.1:8000",
+    'http://localhost:5173',
+    'http://localhost:8000',
+    'http://127.0.0.1:5173',
+    'http://127.0.0.1:8000',
+    'https://localhost:5173',
+    'https://localhost:8000',
+    'https://127.0.0.1:5173',
+    'https://127.0.0.1:8000',
+    'http://*.localhost:5173',
+    'http://*.localhost:8000',
+    'http://*.127.0.0.1:5173',
+    'http://*.127.0.0.1:8000',
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -191,4 +199,3 @@ CORS_ALLOW_HEADERS = [
     'x-csrftoken',
     "User-Agent",
 ]
-
