@@ -146,7 +146,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # CORS
 
 # CSRF Configuration
-CSRF_COOKIE_HTTPONLY = True  # Permite JavaScript acessar
+CSRF_COOKIE_HTTPONLY = False  # Permite JavaScript acessar
 CSRF_COOKIE_SAMESITE = 'Lax'  # Funciona com cross-site em HTTP
 CSRF_COOKIE_AGE = 31449600  # 1 ano
 CSRF_COOKIE_NAME = 'csrftoken'
@@ -190,15 +190,10 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 CORS_ALLOW_CREDENTIALS = True
-CORS_EXPOSE_HEADERS = [
-    "Content-Type",
-    "X-CSRFToken",
-    "Content-Disposition",
-    "User-Agent",
-]
+CORS_EXPOSE_HEADERS = ["Content-Type", "X-CSRFToken"]
 
-CORS_ALLOW_HEADERS = [
-    'content-type',
-    'x-csrftoken',
-    "User-Agent",
-]
+#CORS_ALLOW_HEADERS = [
+#    'content-type',
+#    'x-csrftoken',
+#    "User-Agent",
+#]
