@@ -1,4 +1,6 @@
 import uuid
+import random
+import string
 from django.db import models
 
 
@@ -12,6 +14,18 @@ class Session(models.Model):
     # ID curto para entrar na sala (ex: X7B2)
     code = models.CharField(max_length=4, unique=True, db_index=True)
     name = models.CharField(max_length=50)
+
+    def save(self, *args, **kwargs):
+        if not self.code:  # Gera código apenas se não existir
+            self.code = self.generate_unique_code()
+        super().save(*args, **kwargs)
+
+    def generate_unique_code(self):
+        while True:
+            code = ''.join(random.choices(
+                string.ascii_uppercase + string.digits, k=4))
+            if not Session.objects.filter(code=code).exists():
+                return code
 
     total_rounds = models.IntegerField(default=5)  # Quantas rodadas vai ter
     time_limit = models.IntegerField(default=60)   # Segundos por rodada
@@ -83,6 +97,8 @@ class Guess(models.Model):
         Player, related_name='guesses', on_delete=models.CASCADE)
     round = models.ForeignKey(
         Round, related_name='guesses', on_delete=models.CASCADE)
+    #session = models.ForeignKey(
+        #Session, related_name='guesses', on_delete=models.CASCADE)
 
     # Onde o jogador clicou
     latitude_guess = models.FloatField()
