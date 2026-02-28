@@ -40,3 +40,4 @@ env/
 
 # Databases
 *.sqlite3
+*node_modules

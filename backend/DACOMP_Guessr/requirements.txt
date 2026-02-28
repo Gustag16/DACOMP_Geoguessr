@@ -1,6 +1,9 @@
 Django>=4.2
 psycopg2
 channels
+channels-redis
+channels_redis
+asgi_redis
 daphne
 python-decouple
 asgiref

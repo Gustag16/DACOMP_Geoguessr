@@ -1,13 +1,8 @@
 from django.urls import re_path
-from . import consumers # Import your consumers
+from . import consumers
 
+# Isso define as URLs WebSocket do seu app
 websocket_urlpatterns = [
-    # Example 1: Static path
-    re_path(r'ws/status/$', consumers.StatusConsumer.as_asgi()),
-
-    # Example 2: Path with a dynamic argument
-    re_path(r'ws/chat/(?P<room_name>\w+)/$', consumers.ChatConsumer.as_asgi()),
-    
-    # You can also use Django's standard path
-    # path("ws/presence", consumers.PresenceConsumer.as_asgi()),
+    # Exemplo: ws://seudominio.com/ws/lobby/ABC123/
+    re_path(r'ws/lobby/(?P<session_code>\w+)/$', consumers.PlayerConsumer.as_asgi()),
 ]
