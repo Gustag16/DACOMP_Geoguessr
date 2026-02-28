@@ -10,7 +10,7 @@ from django.core.asgi import get_asgi_application
 from channels.routing import ProtocolTypeRouter, URLRouter
 #from channels.auth import AuthMiddlewareStack
 #from channels.security.websocket import AllowedHostsOriginValidator
-#import Guessing_Game.routing
+import Guessing_Game.routing
 import os
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'DACOMP_Guessr.settings')
@@ -32,4 +32,7 @@ application = ProtocolTypeRouter({
 
 application = ProtocolTypeRouter({
     "http": django_asgi_app,
+    "websocket": URLRouter(
+        Guessing_Game.routing.websocket_urlpatterns
+    ),
 })

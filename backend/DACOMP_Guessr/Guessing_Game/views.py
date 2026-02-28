@@ -71,13 +71,11 @@ def set_csrf_cookie_view(request):
 
 # === LOCATION ====
 
+
 class LocationViewSet(viewsets.ModelViewSet):
     queryset = Location.objects.all()
     serializer_class = LocationSerializer
 
-
-def get_location(request):
-    return HttpResponse(status=200)
 
 # ===================
 
@@ -109,4 +107,14 @@ def proxy_drive(request):
 
 # === Session ====
 
-#class SessionViewSet:
+class SessionViewSet(viewsets.ModelViewSet):
+    queryset = Session.objects.all()
+    serializer_class = SessionSerializer
+
+# ==================
+
+# ==== Player ====
+
+class PlayerViewSet(viewsets.ModelViewSet):
+    queryset = Player.objects.all()
+    serializer_class = PlayerSerializer

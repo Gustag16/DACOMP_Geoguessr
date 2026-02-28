@@ -61,13 +61,16 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'DACOMP_Guessr.urls'
 ASGI_APPLICATION = 'DACOMP_Guessr.asgi.application'
+WSGI_APPLICATION = 'DACOMP_Guessr.wsgi.application'
 
 CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels_redis.core.InMemoryChannelLayer',
-    },
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
+        #'CONFIG': {
+        #    'hosts': [("127.0.0.1", 8000)],
+        #},
+    }
 }
-
 
 TEMPLATES = [
     {
@@ -84,8 +87,6 @@ TEMPLATES = [
         },
     },
 ]
-
-WSGI_APPLICATION = 'DACOMP_Guessr.wsgi.application'
 
 
 # Database
@@ -150,7 +151,7 @@ CSRF_COOKIE_HTTPONLY = False  # Permite JavaScript acessar
 CSRF_COOKIE_SAMESITE = 'Lax'  # Funciona com cross-site em HTTP
 CSRF_COOKIE_AGE = 31449600  # 1 ano
 CSRF_COOKIE_NAME = 'csrftoken'
-CSRF_COOKIE_DOMAIN = '127.0.0.1'
+CSRF_COOKIE_DOMAIN = None
 
 if DEBUG:
     CSRF_COOKIE_SECURE = False
@@ -192,8 +193,8 @@ CORS_ALLOWED_ORIGINS = [
 CORS_ALLOW_CREDENTIALS = True
 CORS_EXPOSE_HEADERS = ["Content-Type", "X-CSRFToken"]
 
-#CORS_ALLOW_HEADERS = [
-#    'content-type',
-#    'x-csrftoken',
-#    "User-Agent",
-#]
+CORS_ALLOW_HEADERS = [
+    'content-type',
+    'x-csrftoken',
+    "User-Agent",
+]
