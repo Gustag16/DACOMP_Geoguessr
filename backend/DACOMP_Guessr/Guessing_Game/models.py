@@ -7,6 +7,7 @@ from django.db import models
 class Session(models.Model):
     # Opções para o campo status (Enum)
     class Status(models.TextChoices):
+        INACTIVE = 'INACTIVE', 'Inativa'
         LOBBY = 'LOBBY', 'Aguardando'
         PLAYING = 'PLAYING', 'Jogando'
         FINISHED = 'FINISHED', 'Finalizado'
@@ -41,7 +42,6 @@ class Session(models.Model):
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
-
     def __str__(self):
         return f"{self.name} ({self.code})"
 

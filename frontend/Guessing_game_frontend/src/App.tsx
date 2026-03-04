@@ -12,7 +12,7 @@ function App() {
   return (
     <>
     <Routes>
-      <Route path="/lobby/:id" element={<Lobby />} />
+      <Route path="/lobby/:code" element={<Lobby />} />
       <Route path="/game" element={<GameSession />} />
       <Route path="/results" element={<ResultsPage />} />
       <Route path="/host" element={<HostPage />} />

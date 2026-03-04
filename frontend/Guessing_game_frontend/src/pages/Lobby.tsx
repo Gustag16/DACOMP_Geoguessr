@@ -2,13 +2,17 @@ import CodeBox from '../components/Lobby/CodeBox'
 import PlayerCard from '../components/Lobby/PlayerCard'
 import PlayerEdit from '../components/Lobby/PlayerEdit'
 import PlayerAvatar from '../components/Lobby/PlayerAvatar'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { PlayerAvatarProps } from '../components/Lobby/PlayerAvatar' // utiliza as props do avatar como o tipo
 import { facesList, headsList, accsList, colorsList } from '../components/Lobby/PlayerAvatar'
+import type { Player } from '../utils/interfaces/playerInterface'
+import { fetchSession } from '../api/Lobby/LobbyServices'
+import type { Session } from '../utils/interfaces/sessionInterface'
+import { useParams } from 'react-router-dom';
+import { useSessionSocket } from '../api/ws';
 
 export default function Lobby() {
     // variaveis para teste
-    const code = "ABC4"
     const numPlayers = 15
     const ownName = "Gustavo"
 
@@ -61,9 +65,32 @@ export default function Lobby() {
 
     }
 
+    const [sessionPlayers, setSessionPlayers] = useState<Player[]>([])
+    const [session, setSession] = useState<Session | null>(null)
+    const { code } = useParams();
+    const { join, isConnected, lastData, listPlayers } = useSessionSocket(code!);
+
+    useEffect(() => {
+        fetchSession(code!)
+            .then((sessionData) => {
+                setSession(sessionData)
+                console.log(sessionData)
+                //setSessionPlayers(sessionData.players);
+            })
+            .catch((error) => {
+                console.error("Error fetching session data:", error);
+            });
+    }, [code]);
+
+
+    useEffect(() => {
+        join(ownName, avatarConfig);
+    }, [ownName, avatarConfig]);
+
+    
     return (
         <div>
-            <CodeBox code={code} numPlayers={numPlayers} />
+            <CodeBox code={session?.code || ""} numPlayers={numPlayers} />
             
             <PlayerEdit ownName={ownName} onStyleChange={handleStyleChange}>
                 <PlayerAvatar 

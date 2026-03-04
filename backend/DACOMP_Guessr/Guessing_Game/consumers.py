@@ -40,6 +40,14 @@ class PlayerConsumer(WebsocketConsumer):
             self.handle_join(data)
         elif action == 'update_avatar':
             self.handle_avatar_update(data)
+        elif action == 'list_players':
+            self.handle_list_players()
+    
+    def player_joined(self, event):
+        self.send(text_data=json.dumps({
+            'type': 'player_update',
+            'player': event['player']
+        }))
 
     def handle_join(self, data):
 
@@ -64,8 +72,21 @@ class PlayerConsumer(WebsocketConsumer):
             'type': 'join_success',
             'player_id': str(player.id),
             'message': f'Bem-vindo, {player.nickname}!'
+        
         }))
-
+        # Notificar outros jogadores
+        async_to_sync(self.channel_layer.group_send)(
+            self.session_group,
+            {
+                'type': 'player_joined',
+                'player': {
+                    'id': str(player.id),
+                    'nickname': player.nickname,
+                    'avatar_config': player.avatar_config
+                }
+            }
+        )
+        
     def start_round_timer(self):
         """Inicia uma thread para o timer (já que é síncrono)"""
         def timer_thread():
@@ -89,8 +110,16 @@ class PlayerConsumer(WebsocketConsumer):
             'message': event['message']
         }))
 
-    def player_joined(self, event):
+
+    def list_players(self):
+        players = Player.objects.filter(session=self.session, is_connected=True)
+        player_list = [{
+            'id': str(player.id),
+            'nickname': player.nickname,
+            'avatar_config': player.avatar_config
+        } for player in players]
+
         self.send(text_data=json.dumps({
-            'type': 'player_update',
-            'player': event['player']
+            'type': 'player_list',
+            'players': player_list
         }))

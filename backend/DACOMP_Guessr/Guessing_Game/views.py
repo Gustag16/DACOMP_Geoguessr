@@ -6,6 +6,8 @@ from django.middleware.csrf import get_token
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.csrf import csrf_protect, csrf_exempt
 from rest_framework import viewsets
+from rest_framework.decorators import action
+from rest_framework.response import Response 
 from .models import *
 from .serializers import *
 import json
@@ -110,6 +112,24 @@ def proxy_drive(request):
 class SessionViewSet(viewsets.ModelViewSet):
     queryset = Session.objects.all()
     serializer_class = SessionSerializer
+    lookup_field = 'code' 
+
+    @action(detail=True, methods=['post'])
+    def update_status(self, request, code=None):
+        try:
+            session = self.get_object()
+            data = request.data
+            new_status = data.get("status")
+            if new_status in dict(Session.Status.choices):
+                session.status = new_status
+                session.save()
+                return Response({"message": "Status updated"})
+            else:
+                return Response({"error": "Invalid status"}, status=400)
+        except Session.DoesNotExist:
+            return Response({"error": "Session not found"}, status=404)
+    
+
 
 # ==================
 
