@@ -36,7 +36,7 @@ export default function PlayerEdit({ ownName, children, onStyleChange }: PlayerE
                 <span> Color </span> 
                 <button onClick={() => onStyleChange('color', 'next')}>&gt;</button>
             </div>
-        </div>  
+        </div>
     </div>
   )
 }
