@@ -2,7 +2,7 @@ import CodeBox from '../components/Lobby/CodeBox'
 import PlayerCard from '../components/Lobby/PlayerCard'
 import PlayerEdit from '../components/Lobby/PlayerEdit'
 import PlayerAvatar from '../components/Lobby/PlayerAvatar'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import type { PlayerAvatarProps } from '../components/Lobby/PlayerAvatar' // utiliza as props do avatar como o tipo
 import { facesList, headsList, accsList, colorsList } from '../components/Lobby/PlayerAvatar'
 import type { Player } from '../utils/interfaces/playerInterface'
@@ -66,26 +66,73 @@ export default function Lobby() {
     }
 
     const [sessionPlayers, setSessionPlayers] = useState<Player[]>([])
+    const [hasJoined, setHasJoined] = useState(false);
     const [session, setSession] = useState<Session | null>(null)
     const { code } = useParams();
-    const { join, isConnected, lastData, listPlayers } = useSessionSocket(code!);
+
+    const handleWebSocketMessage = useCallback((data: any) => {
+        if (data.type === 'player_list') {
+            setSessionPlayers(data.players.map((p: any) => ({
+                id: p.id,
+                name: p.nickname,
+                head: p.avatar_config.head,
+                face: p.avatar_config.face,
+                acc: p.avatar_config.acc,
+                color: p.avatar_config.color
+            })));
+        } else if (data.type === 'player_update') {
+            const newPlayer: Player = {
+                id: data.player.id,
+                nickname: data.player.nickname,
+                avatar: {
+                    head: data.player.avatar_config.head,
+                    face: data.player.avatar_config.face,
+                    acc: data.player.avatar_config.acc,
+                    color: data.player.avatar_config.color
+                },
+                score: data.player.score,
+                last_round_score: data.player.last_round_score,
+                session: data.player.session,
+                is_connected: data.player.is_connected
+            
+            };
+            setSessionPlayers(prev => [...prev, newPlayer]);
+        }
+    }, []);
+
+
+    const { join, isConnected, listPlayers } = useSessionSocket(code!, handleWebSocketMessage); 
+
+
 
     useEffect(() => {
-        fetchSession(code!)
-            .then((sessionData) => {
-                setSession(sessionData)
-                console.log(sessionData)
-                //setSessionPlayers(sessionData.players);
-            })
-            .catch((error) => {
-                console.error("Error fetching session data:", error);
-            });
+        if (isConnected && !hasJoined) {
+            // Primeiro, entra no lobby
+            join(ownName, avatarConfig);
+            setHasJoined(true);
+            
+            // Depois pede a lista de jogadores
+            setTimeout(() => {
+                listPlayers();
+            }, 500); // Pequeno delay para garantir que o join foi processado
+        }
+    }, [isConnected, hasJoined, join, listPlayers, ownName, avatarConfig]);
+
+        useEffect(() => {
+        if (code) {
+            fetchSession(code)
+                .then((sessionData) => {
+                    setSession(sessionData)
+                })
+                .catch((error) => {
+                    console.error("Error fetching session data:", error);
+                });
+        }
     }, [code]);
 
-
     useEffect(() => {
-        join(ownName, avatarConfig);
-    }, [ownName, avatarConfig]);
+        console.log("Jogadores na sessão:", sessionPlayers);
+    }, [sessionPlayers]);
 
     
     return (
