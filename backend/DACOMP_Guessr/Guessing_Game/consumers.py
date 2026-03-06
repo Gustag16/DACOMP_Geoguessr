@@ -25,9 +25,9 @@ class PlayerConsumer(WebsocketConsumer):
 
     def disconnect(self, close_code):
         # Quando desconectar, inicie a exclusão automática se o jogador tiver um ID
-        if hasattr(self, 'player_id') and self.player_id:
+        if hasattr(self, 'id') and self.id:
             # Inicia uma thread para deletar após delay
-            thread = threading.Thread(target=self.delete_player_on_delayed_disconnection, args=(self.player_id,))
+            thread = threading.Thread(target=self.delete_player_on_delayed_disconnection, args=(self.id,))
             thread.start()
         
         async_to_sync(self.channel_layer.group_discard)(
@@ -49,53 +49,66 @@ class PlayerConsumer(WebsocketConsumer):
         elif action == 'list_players':
             self.handle_list_players()
     
-    def player_joined(self, event):
-        self.send(text_data=json.dumps({
-            'type': 'player_update',
-            'player': event['player']
-        }))
+    #def player_joined(self, event):
+    #    self.send(text_data=json.dumps({
+    #        'type': 'player_update',
+    #        'player': event['player']
+    #    }))
 
     def handle_join(self, data):
         player_data = data['player']
         nickname = player_data['nickname']
+        id = player_data.get('id') 
         avatar_config = player_data['avatar_config']
 
-        # Verifica se o jogador já existe na sessão (reconexão)
-        existing_player = Player.objects.filter(session=self.session, nickname=nickname).first()
+        existing_player = None
+        if id:
+            try:
+                existing_player = Player.objects.get(id=id, session=self.session)
+            except Player.DoesNotExist:
+                existing_player = None
+        
         if existing_player:
-            # Reativa o jogador existente
+            # Reativa
             existing_player.is_connected = True
-            existing_player.avatar_config = avatar_config  # Atualiza avatar se necessário
             existing_player.save()
             player = existing_player
         else:
-            # Cria um novo jogador
+            # Cria novo
             player = Player.objects.create(
                 session=self.session,
                 nickname=nickname,
-                avatar_config=avatar_config,
+                avatar_config={
+                    'head': 'redonda',
+                    'face': 'feliz',
+                    'acc': 'chapeu',
+                    'color': 'azul'
+                },
                 is_connected=True
             )
 
-        # Guarda o ID do jogador na instância do consumer
-        self.player_id = player.id
+        self.id = player.id
 
-        # Confirma para o cliente
+        # Retorna o ID do jogador para o frontend armazenar
         self.send(text_data=json.dumps({
             'type': 'join_success',
-            'player_id': str(player.id),
+            'id': str(player.id),
+            'avatar_config': player.avatar_config,
             'message': f'Bem-vindo, {player.nickname}!'
         }))
 
-        # Notifica outros jogadores (só se for novo ou reativado)
         async_to_sync(self.channel_layer.group_send)(
             self.session_group,
             {
-                'type': 'player_joined',
+                'type': 'player_update',
                 'player': {
                     'id': str(player.id),
                     'nickname': player.nickname,
-                    'avatar_config': player.avatar_config
+                    'avatar_config': player.avatar_config,
+                    'session': str(player.session.id),
+                    'is_connected': player.is_connected,
+                    'score': player.score,
+                    'last_round_score': player.last_round_score
                 }
             }
         )
@@ -124,29 +137,30 @@ class PlayerConsumer(WebsocketConsumer):
         }))
 
 
-    def list_players(self):
-        players = Player.objects.filter(session=self.session, is_connected=True)
-        player_list = [{
-            'id': str(player.id),
-            'nickname': player.nickname,
-            'avatar_config': player.avatar_config
-        } for player in players]
-
-        self.send(text_data=json.dumps({
-            'type': 'player_list',
-            'players': player_list
-        }))
+    #def list_players(self):
+    #    players = Player.objects.filter(session=self.session, is_connected=True)
+    #    player_list = [{
+    #        'id': str(player.id),
+    #        'nickname': player.nickname,
+    #        'avatar_config': player.avatar_config
+    #    } for player in players]
+    #
+    #    self.send(text_data=json.dumps({
+    #        'type': 'player_list',
+    #        'players': player_list
+    #   }))
 
     def handle_list_players(self):
         players = Player.objects.filter(session=self.session, is_connected=True)
         player_list = [{
             'id': str(player.id),
             'nickname': player.nickname,
-            'avatar_config': player.avatar_config
+            'avatar_config': player.avatar_config,
+            'session': str(player.session.id),
         } for player in players]
 
         self.send(text_data=json.dumps({
-            'type': 'player_list',
+            'type': 'players_list',
             'players': player_list
     }))
 
@@ -162,3 +176,46 @@ class PlayerConsumer(WebsocketConsumer):
                 print(f"Jogador {player.nickname} deletado após desconexão prolongada.")
         except Player.DoesNotExist:
             pass  # Já foi deletado ou não existe
+    
+    #def update_avatar(self, event):
+    #    self.send(text_data=json.dumps({
+    #        'type': 'update_avatar',
+    #        'player': event['player']
+    #    }))
+
+    def handle_avatar_update(self, data):
+        """Atualiza o avatar de um jogador existente"""
+        player_data = data['player']
+        player_id = player_data.get('id')
+        avatar_config = player_data['avatar_config']
+        
+        try:
+            player = Player.objects.get(id=player_id, session=self.session)
+            player.avatar_config = avatar_config
+            player.save()
+            
+            # Notifica todos os jogadores sobre a atualização
+            async_to_sync(self.channel_layer.group_send)(
+                self.session_group,
+                {
+                    'type': 'player_updated',
+                    'player': {
+                        'id': str(player.id),
+                        'nickname': player.nickname,
+                        'avatar_config': player.avatar_config,
+                        'is_connected': player.is_connected
+                    }
+                }
+            )
+        except Player.DoesNotExist:
+            self.send(text_data=json.dumps({
+                'type': 'error',
+                'message': 'Jogador não encontrado'
+            }))
+
+    def player_updated(self, event):
+        """Envia atualização de jogador para todos na sala"""
+        self.send(text_data=json.dumps({
+            'type': 'player_update',
+            'player': event['player']
+        }))
