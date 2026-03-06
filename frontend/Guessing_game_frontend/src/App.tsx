@@ -6,14 +6,15 @@ import GameSession from './pages/GameSession'
 import ResultsPage from './pages/ResultsPage'
 import HostPage from './pages/HostPage'
 import AddLocation from './pages/AddLocation'
-
+import 'leaflet/dist/leaflet.css';
 function App() {
 
   return (
     <>
+
     <Routes>
       <Route path="/lobby/:code" element={<Lobby />} />
-      <Route path="/game" element={<GameSession />} />
+      <Route path="/game/:code" element={<GameSession />} />
       <Route path="/results" element={<ResultsPage />} />
       <Route path="/host" element={<HostPage />} />
       <Route path="/" element={<HomePage />} />
