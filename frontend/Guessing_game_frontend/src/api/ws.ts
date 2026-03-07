@@ -51,12 +51,23 @@ export function useSessionSocket(sessionCode: string, onMessage?: (data: any) =>
     }));
   } 
 
+  function sendGuess(latitude: number, longitude: number) {
+    sendMessage(JSON.stringify({
+      action: 'submit_guess',
+      guess: {
+        latitude: latitude,
+        longitude: longitude
+      }
+    }));
+  }
+
   return {
     join,
     startRound,
     readyState,
     listPlayers,
     updateAvatar,
+    sendGuess,
     isConnected: readyState === ReadyState.OPEN,
   };
 }
