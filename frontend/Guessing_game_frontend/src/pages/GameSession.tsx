@@ -26,6 +26,8 @@ export default function GameSession() {
     const [alreadyGuessed, setAlreadyGuessed] = useState<boolean>(false);
     // estado de interruptor do cronometro
     const [isRoundActive, setIsRoundActive] = useState<boolean>(false);
+    // estado para saber a pontuação do jogador nesta sessão
+    const [playerScore, setPlayerScore] = useState<number>(0);
 
     // escuta as mensagens do servidor
     const handleWebSocketMessage = useCallback((data: any) => {
@@ -44,6 +46,10 @@ export default function GameSession() {
             const posicaoReal: LatLngExpression = [data.location.latitude, data.location.longitude];
             setCorrectPosition(posicaoReal);
             setIsRoundActive(false); // desativa o cronometro
+
+            if (data.my_score !== undefined) { // VER MELHOR O QUE O BACK VAI MANDAR
+                setPlayerScore(data.my_score);
+            }
         } 
     }, []);
 
@@ -64,7 +70,7 @@ export default function GameSession() {
             <div className="flex flex-col items-center">
                 <Timer initialSeconds={30} isActive={isRoundActive} />
 
-                <Score />
+                <Score score={playerScore} />
 
                 <Image imageUrl={currentImageUrl} />
 
@@ -83,7 +89,7 @@ export default function GameSession() {
                 {alreadyGuessed && (
                     <div className="absolute inset-0 z-[1000] bg-black/10 cursor-not-allowed rounded"></div>
                 )}
-                
+
                 <MapComponent 
                     position={guessPosition} 
                     setPosition={setGuessPosition}
