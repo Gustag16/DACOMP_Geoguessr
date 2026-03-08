@@ -31,14 +31,17 @@ export default function GameSession() {
     const [isRoundActive, setIsRoundActive] = useState<boolean>(false);
     // estado para saber a pontuação do jogador nesta sessão
     const [playerScore, setPlayerScore] = useState<number>(0);
+    const [time, setTime] = useState<number>(0);
 
     useEffect(() => {
         if (code) {
             fetchSession(code)
                 .then((sessionData) => {
                     setSession(sessionData)
+                    setTime(sessionData.time_limit);
+                    console.log("Dados da sessão:", sessionData);
                     // Pega a url da imagem do round atual
-                    return fetchRoundUrl(code, 1);
+                    return fetchRoundUrl(code, sessionData.current_round_number);
                 })
                 .then((roundData) => {
                     setCurrentImageUrl(roundData.image_url);
@@ -55,18 +58,22 @@ export default function GameSession() {
     // escuta as mensagens do servidor
     const handleWebSocketMessage = useCallback((data: any) => {
         // se a rodada começou
-        if (data.type === 'session_round_update') {
+        if (data.type === 'session_status_update') {
             // puxa a url que veio do PostgreSQL (por backend)
             setCurrentImageUrl(data.location.image_url);
             console.log("URL da imagem:", data.location.image_url);
 
             setGuessPosition(null);
             setAlreadyGuessed(false);
-            setCorrectPosition(null);
+            setCorrectPosition(null);;
+            setIsRoundActive(false);
+         }
+
+        else if(data.type === 'round_start') {
             setIsRoundActive(true);
          }
               
-        else if (data.type === 'round_ended') { // VER MELHOR O QUE O BACK VAI MANDAR
+        else if (data.type === 'round_timeout') { // VER MELHOR O QUE O BACK VAI MANDAR
             const posicaoReal: LatLngExpression = [data.location.latitude, data.location.longitude];
             setCorrectPosition(posicaoReal);
             setIsRoundActive(false); // desativa o cronometro
@@ -74,7 +81,7 @@ export default function GameSession() {
             if (data.my_score !== undefined) { // VER MELHOR O QUE O BACK VAI MANDAR
                 setPlayerScore(data.my_score);
             }
-        } 
+        }
     }, []);
 
     // extrai o sendGuess do hook
@@ -92,7 +99,7 @@ export default function GameSession() {
     return (
         <div className="flex flex-col gap-4">
             <div className="flex flex-col items-center">
-                <Timer initialSeconds={30} isActive={isRoundActive} />
+                <Timer initialSeconds={time} isActive={isRoundActive} />
 
                 <Score score={playerScore} />
 

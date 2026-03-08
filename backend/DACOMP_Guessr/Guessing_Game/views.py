@@ -166,7 +166,7 @@ class SessionViewSet(viewsets.ModelViewSet):
                         group_name,
                         {
                             'type': 'session_status_update', 
-                            'status': ' PLAYING',
+                            'status': 'PLAYING',
                             'message': 'O jogo vai começar!'
                         }
                     )

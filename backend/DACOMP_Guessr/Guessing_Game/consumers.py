@@ -140,38 +140,52 @@ class PlayerConsumer(WebsocketConsumer):
             'players': event['players']
         }))
         
-    def start_round_timer(self):
-        """Inicia uma thread para o timer (já que é síncrono)"""
-        def timer_thread():
-            import time
-            time.sleep(5)  #Delay pra iniciar round
-            time.sleep(self.session.time_limit)  # Espera o tempo limite
+    def run_game_loop(session_id, channel_layer, session_group):
+        import time
+        session = Session.objects.get(id=session_id)
 
-            async_to_sync(self.channel_layer.group_send)(
-                self.session_group,
+        while session.current_round_number <= session.total_rounds:
+
+            async_to_sync(channel_layer.group_send)(
+                session_group,
                 {
-                    'type': 'round_timeout',
-                    'message': 'Tempo esgotado!'
+                    "type": "round_start",
+                    "message": "Round começou!"
                 }
             )
-        
-        thread = threading.Thread(target=timer_thread)
-        thread.start()
 
+            time.sleep(session.round_time)
+
+            async_to_sync(channel_layer.group_send)(
+                session_group,
+                {
+                    "type": "round_timeout",
+                    "message": "Tempo esgotado!"
+                }
+            )
+
+            session.current_round_number += 1
+            session.save()
+
+        async_to_sync(channel_layer.group_send)(
+            session_group,
+            {
+                "type": "session_status_update",
+                "status": "FINISHED"
+            }
+        )
+        
+    def round_start(self, event):
+        self.send(text_data=json.dumps({
+            "type": "round_start",
+            "message": event["message"]
+        }))
+        
     def round_timeout(self, event):
         self.send(text_data=json.dumps({
-            'type': 'timeout',
-            'message': event['message']
+            "type": "round_timeout",
+            "message": event["message"]
         }))
-
-        if self.session.current_round_number > self.session.total_rounds:
-            self.session.status = Session.Status.FINISHED
-            self.session.save()
-            self.broadcast_session_status(Session.Status.FINISHED)
-        else:
-            self.session.current_round_number += 1
-            self.session.save()
-            self.broadcast_session_status(Session.Status.PLAYING)
 
     def handle_list_players(self):
         players = Player.objects.filter(session=self.session, is_connected=True)
@@ -244,7 +258,7 @@ class PlayerConsumer(WebsocketConsumer):
             self.session_group,
             {
                 'type': 'session_status_update',
-                'status': status,
+                'status':status,
                 'message': f'Sessão alterada para: {status}',
                 'current_round': self.session.current_round_number,
                 'total_rounds': self.session.total_rounds
@@ -259,6 +273,15 @@ class PlayerConsumer(WebsocketConsumer):
             'message': event['message']
         }))
 
+        import time
+        time.sleep(2)
+        if event['status'] == 'PLAYING':
+            threading.Thread(
+            target=self.run_game_loop,
+            args=(self.session.id, self.channel_layer, self.session_group),
+            daemon=True
+        ).start()
+
     def session_round_update(self, event):
         """Envia o número da rodada atualizada para todos os jogadores"""
         self.send(text_data=json.dumps({
@@ -266,7 +289,6 @@ class PlayerConsumer(WebsocketConsumer):
             'current_round': event['current_round'],
             'total_rounds': event['total_rounds']
         }))
-    
 
 
 class SessionConsumer(WebsocketConsumer):

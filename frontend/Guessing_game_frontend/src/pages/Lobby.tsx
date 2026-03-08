@@ -8,7 +8,7 @@ import { facesList, headsList, accsList, colorsList } from '../components/Lobby/
 import type { Player } from '../utils/interfaces/playerInterface'
 import { fetchSession } from '../api/Lobby/LobbyServices'
 import type { Session } from '../utils/interfaces/sessionInterface'
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useSessionSocket } from '../api/ws';
 
 interface WebSocketMessage {
@@ -84,6 +84,7 @@ export default function Lobby() {
     const [localStorageLoaded, setLocalStorageLoaded] = useState(false);
     const [session, setSession] = useState<Session | null>(null)
     const [playerQtd, setPlayerQtd] = useState(0);
+    const navigate = useNavigate();
     const { code } = useParams();
     
 
@@ -162,10 +163,10 @@ export default function Lobby() {
         }
         case 'session_status_update':
             if (data.status! === "PLAYING") {
-                window.location.href = `/game/${code}`;
+                navigate(`/game/${code}`);
             }
             break;
-        }}, [playerId, code]
+        }}, [playerId, code, navigate]
     );
     const { join, isConnected, updateAvatar } = useSessionSocket(code!, handleWebSocketMessage); 
 
@@ -188,7 +189,7 @@ export default function Lobby() {
                 .then((sessionData) => {
                     setSession(sessionData)
                     if (sessionData.status === "PLAYING") {
-                        window.location.href = `/game/${code}`;
+                        navigate(`/game/${code}`);
                     }
                 })
                 .catch((error) => {
