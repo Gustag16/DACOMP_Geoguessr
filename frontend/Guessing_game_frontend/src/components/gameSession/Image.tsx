@@ -16,3 +16,5 @@ export default function Image({imageUrl}: ImageProps) {
     </div>
   )
 }
+
+// Backend hosteia a imagem num link de fácil acesso temporariamente.

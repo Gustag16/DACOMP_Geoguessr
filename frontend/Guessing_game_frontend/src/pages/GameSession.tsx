@@ -59,16 +59,13 @@ export default function GameSession() {
             // puxa a url que veio do PostgreSQL (por backend)
             setCurrentImageUrl(data.location.image_url);
             console.log("URL da imagem:", data.location.image_url);
-         }
-            
-            // salvar as coordenadas corretas futuramente em outro estado
-        
-            // reseta a rodada
+
             setGuessPosition(null);
             setAlreadyGuessed(false);
             setCorrectPosition(null);
             setIsRoundActive(true);
-        }
+         }
+              
         else if (data.type === 'round_ended') { // VER MELHOR O QUE O BACK VAI MANDAR
             const posicaoReal: LatLngExpression = [data.location.latitude, data.location.longitude];
             setCorrectPosition(posicaoReal);
