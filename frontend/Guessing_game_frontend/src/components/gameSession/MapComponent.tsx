@@ -1,26 +1,34 @@
 "use client";
-import { useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMapEvents, Polyline } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { LatLngExpression } from 'leaflet';
 
+interface MapProps {
+  position: LatLngExpression | null;
+  setPosition: (pos: LatLngExpression) => void;
+  correctPosition: LatLngExpression | null;
+}
+
 // ator que escuta os cliques
-function LocationMarker({ position, setPosition }: { position: LatLngExpression, setPosition: any }) {
+function LocationMarker({ position, setPosition }: 
+  {position: LatLngExpression | null, setPosition: (pos: LatLngExpression) => void}) {
+
   useMapEvents({
     click(e) {
       setPosition(e.latlng); // e.latlng contém exatamente as coordenadas onde o mouse clicou
     },
   });
 
-  return (
+  return position === null ? null : (
     <Marker position={position}>
-      <Popup>Your Guess.</Popup>
+      <Popup>
+        Your Guess:<br/>{position.toString()}
+      </Popup>
     </Marker>
   );
 }
 
-const MapComponent = () => {
-  const [position, setPosition] = useState<LatLngExpression>([-21.985, -47.881])
+const MapComponent = ({position, setPosition, correctPosition}: MapProps) => {
 
   return (
     <div className="w-full h-full"> 
@@ -35,6 +43,21 @@ const MapComponent = () => {
         />
 
         <LocationMarker position={position} setPosition={setPosition} />
+
+        {/*desenha o marker da resposta correta quando a rodada acaba*/}
+        {correctPosition && (
+          <Marker position={correctPosition}>
+            <Popup>Resposta Correta!</Popup>
+          </Marker>
+        )}
+
+        {/*desenha uma linha vermelha tracejada que liga as duas respostas*/}
+        {position && correctPosition && (
+          <Polyline 
+            positions={[position, correctPosition]} 
+            pathOptions={{ color: 'red', dashArray: '10, 10', weight: 3 }}
+          />
+        )}
       
       </MapContainer>
     </div>
