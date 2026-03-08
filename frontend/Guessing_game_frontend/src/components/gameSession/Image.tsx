@@ -12,7 +12,7 @@ export default function Image({imageUrl}: ImageProps) {
                 alt='Local da Rodada' 
                 className="max-w-full h-auto rounded-lg shadow-md" 
             />
-        ) : (<p>Aguradando inicio da rodada...</p>) }
+        ) : (<p>Aguardando inicio da rodada...</p>) }
     </div>
   )
 }

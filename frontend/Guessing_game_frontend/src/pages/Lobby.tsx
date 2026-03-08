@@ -17,6 +17,7 @@ interface WebSocketMessage {
     avatar_config?: PlayerAvatarProps;
     players?: Array<any>;
     player?: any;
+    status?: string;
 }
 
 export default function Lobby() {
@@ -80,29 +81,34 @@ export default function Lobby() {
         return localStorage.getItem('playerId');
     });
     const [hasJoined, setHasJoined] = useState(false);
+    const [localStorageLoaded, setLocalStorageLoaded] = useState(false);
     const [session, setSession] = useState<Session | null>(null)
+    const [playerQtd, setPlayerQtd] = useState(0);
     const { code } = useParams();
     
 
     const handleWebSocketMessage = useCallback((data: WebSocketMessage) => {
     switch (data.type) {
         case 'join_success':
-            if (!hasJoined) {
+            setHasJoined(true);
+            if (playerId === null) {
             setPlayerId(data.id!);
             localStorage.setItem('playerId', data.id!);
-            setHasJoined(true);
+            }
+
             setAvatarConfig({
                 head: data.avatar_config!.head,
                 face: data.avatar_config!.face,
                 acc: data.avatar_config!.acc,
                 color: data.avatar_config!.color
             });
-            }
+            
 
-            break;
 
+        break;
         case 'players_list':
             console.log("Recebida lista de jogadores:", data.players);
+            setPlayerQtd(data.players!.filter((p: any) => p.is_connected).length);
             setSessionPlayers(
             data.players!.map((p: any) => ({
             id: p.id,
@@ -117,12 +123,13 @@ export default function Lobby() {
             last_round_score: p.last_round_score,
             session: p.session,
             is_connected: p.is_connected,
-            }))
+            })).filter((p: Player) => p.id !== playerId)
             );
             break;
 
         case 'player_updated':
         case 'player_update': {
+            if(!data.player) break;
             const newPlayer: Player = {
             id: data.player!.id,
             nickname: data.player!.nickname,
@@ -146,36 +153,43 @@ export default function Lobby() {
                 return updatedPlayers;
             } else {
                 // Adiciona um novo jogador
+                //setPlayerQtd(prevQtd => prevQtd + 1);
                 return [...prevPlayers, newPlayer];
+
             }
             });
             break;
         }
-        }}, [hasJoined]
+        case 'session_status_update':
+            if (data.status! === "PLAYING") {
+                window.location.href = `/game/${code}`;
+            }
+            break;
+        }}, [playerId, code]
     );
-    const { join, isConnected, updateAvatar, listPlayers } = useSessionSocket(code!, handleWebSocketMessage); 
+    const { join, isConnected, updateAvatar } = useSessionSocket(code!, handleWebSocketMessage); 
+
 
     useEffect(() => {
-        const savedPlayerId = localStorage.getItem('playerId');
-        if (savedPlayerId) {
-            setPlayerId(savedPlayerId);
-            listPlayers();
-        }
-    }, []);
-
-    useEffect(() => {
+        
         if (isConnected && !hasJoined) {
             // Primeiro, entra no lobby
             join(ownName, avatarConfig, playerId);
-            listPlayers();
+            async function updateHasJoined() {
+                await setHasJoined(true);
+            }
+            updateHasJoined();
         }
-    }, [isConnected, hasJoined, join, listPlayers, ownName, avatarConfig, playerId]);
+    }, [isConnected, hasJoined,  join, localStorageLoaded, ownName, avatarConfig, playerId]);
 
-        useEffect(() => {
+    useEffect(() => {
         if (code) {
             fetchSession(code)
                 .then((sessionData) => {
                     setSession(sessionData)
+                    if (sessionData.status === "PLAYING") {
+                        window.location.href = `/game/${code}`;
+                    }
                 })
                 .catch((error) => {
                     console.error("Error fetching session data:", error);
@@ -184,13 +198,15 @@ export default function Lobby() {
     }, [code]);
 
     useEffect(() => {
-        console.log("Jogadores na sessão:", sessionPlayers);
-    }, [sessionPlayers]);
-
+        if (session?.status === "PLAYING") {
+            // Redirecionar para a página do jogo
+            window.location.href = `/game/${session.code}`;
+        }
+    }, [session]);
     
     return (
         <div>
-            <CodeBox code={session?.code || ""} numPlayers={sessionPlayers.length} />
+            <CodeBox code={session?.code || ""} numPlayers={playerQtd} />
             
             <PlayerEdit ownName={ownName} onStyleChange={handleStyleChange}>
                 <PlayerAvatar 
@@ -203,7 +219,7 @@ export default function Lobby() {
             <button onClick={() => updateAvatar(playerId!, avatarConfig)}>Salvar Mudanças</button>
 
             <div className="player-list flex flex-row gap-4 justify-center mt-8">
-                {sessionPlayers.filter(jogador => jogador.id !== playerId).map((jogador) => (
+                {sessionPlayers.filter(jogador => jogador.id !== playerId && jogador.is_connected).map((jogador) => (
                     <PlayerCard key={jogador.id} name={jogador.nickname}>
                         <PlayerAvatar 
                             head={jogador.avatar?.head} 

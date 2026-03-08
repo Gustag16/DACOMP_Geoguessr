@@ -11,7 +11,7 @@ export async function fetchSessions() {
 export async function startSession(sessionCode: string) {
     /* Da update no atributo "status" da sessão */
     
-    const response = await api.post(`/sessions/${sessionCode}/update_status/`, { status: 'LOBBY' })
+    const response = await api.post(`/sessions/${sessionCode}/update_status/`, { status: 'PLAYING' })
     console.log(response)
     return response.data
 }

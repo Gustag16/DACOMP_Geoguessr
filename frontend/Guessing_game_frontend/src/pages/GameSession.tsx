@@ -9,24 +9,48 @@ import Timer from "../components/gameSession/Timer";
 import GuessButton from "../components/gameSession/GuessButton";
 import Score from "../components/gameSession/Score";
 import { useParams } from "react-router-dom";
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect, use } from "react";
 import { useSessionSocket } from "../api/ws";
+import type { Session } from '../utils/interfaces/sessionInterface'
+import { fetchSession } from "../api/Lobby/LobbyServices";
+import { fetchRoundUrl } from "../api/GameSession/GameSessionServices";
 
 export default function GameSession() {
     const { code } = useParams();
-
+    const [session, setSession] = useState<Session | null>(null)
     // estado para guardar a imagem da rodada atual
     const [currentImageUrl, setCurrentImageUrl] = useState<string>("");
+
+    useEffect(() => {
+        if (code) {
+            fetchSession(code)
+                .then((sessionData) => {
+                    setSession(sessionData)
+                    // Pega a url da imagem do round atual
+                    return fetchRoundUrl(code, 1);
+                })
+                .then((roundData) => {
+                    setCurrentImageUrl(roundData.image_url);
+                    console.log("URL da imagem:", roundData.image_url);
+                })
+                .catch((error) => {
+                    console.error("Error fetching session data:", error);
+                });
+        }
+    }, [code]);
+
+    // Obtém sessão, pega imagem do round atual.
 
     // escuta as mensagens do servidor
     const handleWebSocketMessage = useCallback((data: any) => {
         // se a rodada começou
-        if (data.type === 'new_round') {
+        if (data.type === 'session_round_update') {
             // puxa a url que veio do PostgreSQL (por backend)
             setCurrentImageUrl(data.location.image_url);
+            console.log("URL da imagem:", data.location.image_url);
+         }
             
             // salvar as coordenadas corretas futuramente em outro estado
-        }
     }, []);
 
     // conecta no ws da partida
