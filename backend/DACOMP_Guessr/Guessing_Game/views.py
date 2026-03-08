@@ -1,6 +1,10 @@
+from functools import cache
+import os
+
 from django.http import HttpResponse
+from django.core.cache import cache
 from django.shortcuts import render
-from django.http import StreamingHttpResponse
+from django.http import StreamingHttpResponse 
 from django.http import JsonResponse
 from django.middleware.csrf import get_token
 from django.views.decorators.csrf import ensure_csrf_cookie
@@ -13,6 +17,8 @@ from .serializers import *
 import json
 import requests
 from channels.layers import get_channel_layer
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
 from asgiref.sync import async_to_sync
 
 from DACOMP_Guessr.settings import CSRF_COOKIE_AGE
@@ -107,6 +113,31 @@ def proxy_drive(request):
 
     return response
 
+def proxy_image_download(request):
+    image_url = request.GET.get("url")
+    if not image_url:
+        return JsonResponse({"error": "Missing 'url' parameter"}, status=400)
+
+    try:
+        r = requests.get(image_url, stream=True)
+        r.raise_for_status()
+
+        content_type = r.headers.get("Content-Type", "application/octet-stream")
+        content_disposition = r.headers.get("Content-Disposition", "")
+        filename = "download"
+        if "filename=" in content_disposition:
+            filename = content_disposition.split("filename=")[-1].strip('"\'')
+
+        response = StreamingHttpResponse(
+            r.iter_content(chunk_size=8192),
+            content_type=content_type
+        )
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        return response
+
+    except requests.RequestException as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
 # ==================
 
 # === Session ====
@@ -163,40 +194,60 @@ class RoundViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'], url_path='current-image')
     def get_current_round_image(self, request):
-        """
-        Obtém a imagem do round atual baseado no session_code e round_number
-        Uso: /api/rounds/current-image/?session_code=ABC123&round_number=1
-        """
         round_number = request.query_params.get('round_number')
         session_code = request.query_params.get('session_code')
         
         if not session_code or not round_number:
-            return JsonResponse(
-                {"error": "session_code and round_number are required"}, 
-                status=400
-            )
+            return JsonResponse({"error": "session_code and round_number are required"}, status=400)
         
         try:
-            # Primeiro, encontra a Session pelo code
-            from .models import Session  # Importe no topo do arquivo
             session = Session.objects.get(code=session_code)
+            round_obj = Round.objects.get(session_id=session.id, round_number=round_number)
             
-            # Depois, busca o round específico usando o session_id encontrado
-            round = Round.objects.get(
-                session_id=session.id, 
-                round_number=round_number
-            )
+            # Cria o diretório se não existir
+            media_dir = os.path.join(settings.MEDIA_ROOT, 'round_images', session_code)
+            os.makedirs(media_dir, exist_ok=True)
             
-            # Acessa a imagem através do relacionamento
-            image_url = round.location.image_url
+            filename = f"round_{round_number}_session_{session_code}.jpg"
+            file_path = os.path.join(media_dir, filename)
+            
+            # URL que será acessada pelo frontend
+            image_url = f"{settings.MEDIA_URL}round_images/{session_code}/{filename}"
+            
+            # Verifica se o arquivo já existe
+            if os.path.exists(file_path):
+                return JsonResponse({
+                    "image_url": image_url,
+                    "round_number": round_number,
+                    "session_code": session_code
+                })
+            
+            # Baixa a imagem
+            original_url = round_obj.location.image_url
+            response = requests.get(original_url, timeout=10)
+            
+            if response.status_code != 200:
+                return JsonResponse({"error": "Erro ao baixar imagem externa"}, status=502)
+            
+            # Salva a imagem
+            with open(file_path, 'wb') as f:
+                f.write(response.content)
             
             return JsonResponse({
-                "round_number": round.round_number,
                 "image_url": image_url,
-                "session_code": session.code,
-                "session_id": session.id  # Opcional, pode ser útil
+                "round_number": round_number,
+                "session_code": session_code,
+                "message": "Imagem baixada e disponibilizada com sucesso"
             })
             
+        except Session.DoesNotExist:
+            return JsonResponse({"error": "Sessão não encontrada"}, status=404)
+        except Round.DoesNotExist:
+            return JsonResponse({"error": "Round não encontrado"}, status=404)
+        except Exception as e:
+            return JsonResponse({"error": f"Erro interno: {str(e)}"}, status=500)
+
+# ==================
         except Session.DoesNotExist:
             return JsonResponse(
                 {"error": f"Session with code '{session_code}' not found"}, 

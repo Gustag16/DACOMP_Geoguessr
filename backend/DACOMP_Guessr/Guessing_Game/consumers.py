@@ -245,7 +245,7 @@ class PlayerConsumer(WebsocketConsumer):
             {
                 'type': 'session_status_update',
                 'status': status,
-                'message': f'Sessão alterada para: {status}'
+                'message': f'Sessão alterada para: {status}',
                 'current_round': self.session.current_round_number,
                 'total_rounds': self.session.total_rounds
             }

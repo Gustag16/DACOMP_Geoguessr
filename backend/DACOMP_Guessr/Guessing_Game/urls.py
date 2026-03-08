@@ -8,8 +8,6 @@ router.register(r'sessions', SessionViewSet)
 router.register(r'players', PlayerViewSet) 
 router.register(r'rounds', RoundViewSet)
 
-
-
 urlpatterns = [
     path('', include(router.urls)),
 ]

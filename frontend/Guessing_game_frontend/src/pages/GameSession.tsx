@@ -109,7 +109,7 @@ export default function GameSession() {
                     </span>
                 )}
             </div>
-            <div className="w-full h-125 flex flex-col items-center justify-center gap-4 relative">
+            <div className="w-[80%] h-[70%] flex flex-col items-center justify-center gap-4  mb-6 mx-auto relative">
                 {alreadyGuessed && (
                     <div className="absolute inset-0 z-[1000] bg-black/10 cursor-not-allowed rounded"></div>
                 )}

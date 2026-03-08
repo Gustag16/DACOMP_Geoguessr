@@ -31,11 +31,11 @@ function LocationMarker({ position, setPosition }:
 const MapComponent = ({position, setPosition, correctPosition}: MapProps) => {
 
   return (
-    <div className="w-full h-full"> 
+    <div className="w-[80%] h-120"> 
       <MapContainer id="map" center={[-21.985, -47.881]} 
         zoom={15} 
         scrollWheelZoom={true}
-        className="w-full h-full"
+        className="w-[80% h-120"
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
