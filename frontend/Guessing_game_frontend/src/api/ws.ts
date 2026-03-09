@@ -32,8 +32,8 @@ export function useSessionSocket(sessionCode: string, onMessage?: (data: any) =>
     }));
   }
 
-  function startRound() {
-    sendMessage(JSON.stringify({ action: 'start_round' }));
+  function startRoundManual() {
+    sendMessage(JSON.stringify({ action: 'start_round_manual', nickname: "ULTRAHOST" }));
   }
 
 
@@ -56,14 +56,14 @@ export function useSessionSocket(sessionCode: string, onMessage?: (data: any) =>
       action: 'submit_guess',
       guess: {
         latitude: latitude,
-        longitude: longitude
+        longitude: longitude,
       }
     }));
   }
 
   return {
     join,
-    startRound,
+    startRoundManual,
     readyState,
     listPlayers,
     updateAvatar,

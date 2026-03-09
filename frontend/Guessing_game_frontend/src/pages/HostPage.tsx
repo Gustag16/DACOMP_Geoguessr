@@ -1,9 +1,11 @@
 // Somente acessível pelo "admin". Precisa de uma senha e tals
 // Aqui escolhe qual sessão vai ser iniciada, lim de players e lim de tempo
 // Também decide quando vai a sessão vai sair do lobby, e começar a partida
-import {fetchSessions, startSession, lobbySession, deactivateSession} from "../api/Host/HostServices";
+import {fetchSessions, startSession, lobbySession, deactivateSession, startRoundManual} from "../api/Host/HostServices";
 import type { Session } from "../utils/interfaces/sessionInterface";
 import { useState, useEffect, type ChangeEvent } from "react";
+
+
 export default function HostPage() {
 
     const [sessions, setSessions] = useState<Session[]>([])
@@ -26,6 +28,7 @@ export default function HostPage() {
             });
     }
 
+
     function handleLobbySession(sessionCode: string) {
         lobbySession(sessionCode)
             .then(() => {
@@ -47,6 +50,12 @@ export default function HostPage() {
                 alert("Failed to deactivate session. Please try again.");
             });
     }
+
+    function handleStartRoundsLogic(selectedSessionId: string) {
+        startRoundManual(selectedSessionId)
+    }
+
+    
 
 
     return (
@@ -78,6 +87,11 @@ export default function HostPage() {
                              text-white font-bold py-2 px-4 rounded"
                     onClick={() => handleDeactivateSession(selectedSessionId)}>
                         Deactivate
+            </button>
+            <button className="flex justify-center items-center bg-green-500 hover:bg-green-600
+                             text-white font-bold py-2 px-4 rounded"
+                    onClick={() => handleStartRoundsLogic(selectedSessionId)}>
+                        Start Roud
             </button>
             
             

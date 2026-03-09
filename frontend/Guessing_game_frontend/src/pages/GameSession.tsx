@@ -19,6 +19,7 @@ import { fetchRoundUrl } from "../api/GameSession/GameSessionServices";
 export default function GameSession() {
     const { code } = useParams();
     const [session, setSession] = useState<Session | null>(null)
+    const [currentRoundNumber, setCurrentRoundNumber] = useState<number>(0);
     // estado para guardar a imagem da rodada atual
     const [currentImageUrl, setCurrentImageUrl] = useState<string>("");
     // estado para guardar latitude / longitude do guess atual
@@ -39,6 +40,7 @@ export default function GameSession() {
                 .then((sessionData) => {
                     setSession(sessionData)
                     setTime(sessionData.time_limit);
+                    setCurrentRoundNumber(sessionData.current_round_number);
                     console.log("Dados da sessão:", sessionData);
                     // Pega a url da imagem do round atual
                     return fetchRoundUrl(code, sessionData.current_round_number);
@@ -51,7 +53,7 @@ export default function GameSession() {
                     console.error("Error fetching session data:", error);
                 });
         }
-    }, [code]);
+    }, [code, currentRoundNumber]);
 
     // Obtém sessão, pega imagem do round atual.
 
@@ -70,15 +72,20 @@ export default function GameSession() {
          }
 
         else if(data.type === 'round_start') {
+            setGuessPosition(null);
+            setAlreadyGuessed(false);
+            setCorrectPosition(null);
+            setIsRoundActive(false);
+            setCurrentRoundNumber((prev) => prev + 1);
             setIsRoundActive(true);
          }
               
-        else if (data.type === 'round_timeout') { // VER MELHOR O QUE O BACK VAI MANDAR
+        else if (data.type === 'round_timeout') { 
             const posicaoReal: LatLngExpression = [data.location.latitude, data.location.longitude];
             setCorrectPosition(posicaoReal);
             setIsRoundActive(false); // desativa o cronometro
 
-            if (data.my_score !== undefined) { // VER MELHOR O QUE O BACK VAI MANDAR
+            if (data.my_score !== undefined) { 
                 setPlayerScore(data.my_score);
             }
         }
@@ -99,7 +106,7 @@ export default function GameSession() {
     return (
         <div className="flex flex-col gap-4">
             <div className="flex flex-col items-center">
-                <Timer initialSeconds={time} isActive={isRoundActive} />
+                <Timer key={currentRoundNumber} initialSeconds={time} isActive={isRoundActive} />
 
                 <Score score={playerScore} />
 

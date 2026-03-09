@@ -16,6 +16,7 @@ function LocationMarker({ position, setPosition }:
   useMapEvents({
     click(e) {
       setPosition(e.latlng); // e.latlng contém exatamente as coordenadas onde o mouse clicou
+      console.log("Posição do clique:", e.latlng);
     },
   });
 

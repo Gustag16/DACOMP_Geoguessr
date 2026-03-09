@@ -20,6 +20,8 @@ from channels.layers import get_channel_layer
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from asgiref.sync import async_to_sync
+from .gamelogic import run_game_loop
+import threading
 
 from DACOMP_Guessr.settings import CSRF_COOKIE_AGE
 from DACOMP_Guessr import settings
@@ -139,6 +141,28 @@ def proxy_image_download(request):
         return JsonResponse({"error": str(e)}, status=500)
 
 # ==================
+def start_game(session_code):
+    """
+    Inicia o jogo em uma thread separada
+    """
+    session = Session.objects.get(code=session_code)
+    channel_layer = get_channel_layer()
+    session_group = f"session_{session_code}"
+    
+    # Atualiza status para PLAYING
+    session.status = Session.Status.PLAYING
+    session.current_round_number = 1
+    session.save()
+    
+    # Inicia thread com a função independente
+    thread = threading.Thread(
+        target=run_game_loop,
+        args=(session.id, channel_layer, session_group),
+        daemon=True
+    )
+    thread.start()
+    
+    return thread
 
 # === Session ====
 
@@ -176,6 +200,24 @@ class SessionViewSet(viewsets.ModelViewSet):
         except Session.DoesNotExist:
             return Response({"error": "Session not found"}, status=404)
     
+    # Inicializar rounds via api
+    @action(detail=True, methods=['post'])
+    def initialize_rounds(self, request, code=None):  # Corrigido para code
+        try:
+            session = self.get_object()
+            data = request.data
+            
+            # Verifica autorização
+            if data.get('nickname') != "ULTRAHOST":
+                return Response({"error": "Unauthorized"}, status=403)
+            
+            # Inicia o jogo
+            start_game(code)
+            
+            return Response({"message": "Game started successfully"})
+            
+        except Session.DoesNotExist:
+            return Response({"error": "Session not found"}, status=404)
 
 
 # ==================

@@ -3,7 +3,8 @@ import asyncio
 from asgiref.sync import async_to_sync
 import threading
 from channels.generic.websocket import WebsocketConsumer
-from .models import Session, Player
+from channels.layers import get_channel_layer
+from .models import Session, Player, Round, Location
 
 
 class PlayerConsumer(WebsocketConsumer):
@@ -81,6 +82,10 @@ class PlayerConsumer(WebsocketConsumer):
             self.handle_avatar_update(data)
         elif action == 'list_players':
             self.handle_list_players()
+        elif action == 'start_round_manual':
+            self.start_round_manual()
+        elif action == 'submit_guess':
+            self.process_guess()
 
     def handle_join(self, data):
         if (self.session.status == "PLAYING") or (self.session.status == "FINISHED"):
@@ -140,7 +145,8 @@ class PlayerConsumer(WebsocketConsumer):
             'players': event['players']
         }))
         
-    def run_game_loop(session_id, channel_layer, session_group):
+    '''
+    def run_game_loop(self, session_id, channel_layer, session_group):
         import time
         session = Session.objects.get(id=session_id)
 
@@ -174,6 +180,7 @@ class PlayerConsumer(WebsocketConsumer):
                 "status": "FINISHED"
             }
         )
+    '''
         
     def round_start(self, event):
         self.send(text_data=json.dumps({
@@ -275,12 +282,20 @@ class PlayerConsumer(WebsocketConsumer):
 
         import time
         time.sleep(2)
-        if event['status'] == 'PLAYING':
-            threading.Thread(
-            target=self.run_game_loop,
-            args=(self.session.id, self.channel_layer, self.session_group),
+
+    '''
+    def start_round_manual(session_code):
+        session = Session.objects.get(code=session_code)
+        channel_layer = get_channel_layer()
+        session_group = f"session_{session_code}"
+
+        thread = threading.Thread(
+            target=run_game_loop,
+            args=(session.id, channel_layer, session_group),
             daemon=True
-        ).start()
+        )
+        thread.start()
+    '''
 
     def session_round_update(self, event):
         """Envia o número da rodada atualizada para todos os jogadores"""
@@ -290,28 +305,14 @@ class PlayerConsumer(WebsocketConsumer):
             'total_rounds': event['total_rounds']
         }))
 
-
-class SessionConsumer(WebsocketConsumer):
-    def connect(self):
-        self.session_code = self.scope['url_route']['kwargs']['session_code']
-        self.session_group = f'session_{self.session_code}'
-
-        try:
-            self.session = Session.objects.get(code=self.session_code)
-
-            async_to_sync(self.channel_layer.group_add)(
-                self.session_group,
-                self.channel_name
-            )
-            self.accept()
-
-        except Session.DoesNotExist:
-            self.close()
-
-    def disconnect(self, close_code):
-        async_to_sync(self.channel_layer.group_discard)(
-            self.session_group,
-            self.channel_name
+    def process_guess(self, data):
+        guess_lat = data.guess.latitude
+        guess_lon = data.guess.longitude
+        guess_time = data.guess.time
+        round_obj = Round.objects.select_related("location").get(
+        session=self.session,
+        round_number=self.session.current_round_number
         )
-
+        round_lat = round_obj.location.latitude
+        round_lon = round_obj.location.longitude
 
