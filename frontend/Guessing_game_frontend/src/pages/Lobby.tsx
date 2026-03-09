@@ -39,7 +39,7 @@ export default function Lobby() {
         color: 'azul'
     });
 
-    function handleStyleChange(categoria: keyof PlayerAvatarProps, direcao: 'next' | 'prev') {
+    function handleStyleChange(categoria: 'head' | 'face' | 'acc' | 'color', direcao: 'next' | 'prev') {
         // decidir a lista correta de acordo com o parametro
         let listaAtual: string[] = [];
         if (categoria === 'face') listaAtual = facesList;
@@ -206,20 +206,41 @@ export default function Lobby() {
     }, [session]);
     
     return (
-        <div>
-            <CodeBox code={session?.code || ""} numPlayers={playerQtd} />
-            
-            <PlayerEdit ownName={ownName} onStyleChange={handleStyleChange}>
-                <PlayerAvatar 
-                    head={avatarConfig.head} 
-                    face={avatarConfig.face} 
-                    acc={avatarConfig.acc} 
-                    color={avatarConfig.color} 
-                />
-            </PlayerEdit>
-            <button onClick={() => updateAvatar(playerId!, avatarConfig)}>Salvar Mudanças</button>
+        <div className="w-full h-[1024px] relative bg-gradient-to-b from-fuchsia-800 via-purple-950 to-slate-950 overflow-hidden">
 
-            <div className="player-list flex flex-row gap-4 justify-center mt-8">
+            <h1 className="justify-center flex text-white text-8xl font-normal font-['Silkscreen']">GEOGUESSR_DACOMP</h1>
+            <h2 className="justify-center flex mb-10 text-white text-5xl font-normal font-['Silkscreen'] m-7">-=LOB=-</h2>
+
+            <div className='justify-center flex mt-8 mb-4'>
+                <PlayerEdit ownName={ownName} onStyleChange={handleStyleChange} onNameChange={setOwnName}>
+                    <div className='ml-3'>
+                        <PlayerAvatar
+                            head={avatarConfig.head}
+                            face={avatarConfig.face}
+                            acc={avatarConfig.acc}
+                            color={avatarConfig.color}
+                        />
+                    </div>
+                </PlayerEdit>
+                
+                <CodeBox code={session?.code || ""} numPlayers={playerQtd} />
+            </div>
+
+            <div className="flex flex-row gap-4 justify-center">
+                <button 
+                className="group relative mb-10 px-4 py-2 text-white text-1xl font-normal font-['Silkscreen'] hover:cursor-pointer"
+                onClick={() => updateAvatar(playerId!, avatarConfig)}
+                >
+                    <span className="absolute inset-0 z-0 bg-fuchsia-600 rounded-lg opacity-0 
+                    transition-opacity duration-200 group-hover:opacity-20"></span>
+                    
+                    <span className="relative z-10">
+                        Salvar Mudanças
+                    </span>
+                </button>
+            </div>
+
+            <div className="player-list flex flex-row flex-wrap gap-4 justify-center max-w-7xl mx-auto px-4 pb-8">
                 {sessionPlayers.filter(jogador => jogador.id !== playerId && jogador.is_connected).map((jogador) => (
                     <PlayerCard key={jogador.id} name={jogador.nickname}>
                         <PlayerAvatar 
@@ -227,9 +248,11 @@ export default function Lobby() {
                             face={jogador.avatar?.face} 
                             acc={jogador.avatar?.acc} 
                             color={jogador.avatar?.color} 
+                            size='sm'
                         />
                     </PlayerCard>
                 ))}
+                
             </div>
         </div>
     )
