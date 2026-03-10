@@ -6,7 +6,7 @@ def run(stdout):
         stdout.write("Locations already seeded")
         return
 
-    with open("Location_satellite.csv", newline='', encoding='utf-8') as csvfile:
+    with open("./Location_satellite.csv", newline='', encoding='utf-8') as csvfile:
         reader = csv.DictReader(csvfile)
 
         objs = [
