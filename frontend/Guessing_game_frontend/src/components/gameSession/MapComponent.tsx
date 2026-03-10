@@ -17,6 +17,7 @@ function LocationMarker({ position, setPosition }:
     click(e) {
       setPosition(e.latlng); // e.latlng contém exatamente as coordenadas onde o mouse clicou
       console.log("Posição do clique:", e.latlng);
+      console.log("position", position)
     },
   });
 

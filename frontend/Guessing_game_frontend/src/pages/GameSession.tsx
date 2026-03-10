@@ -9,12 +9,14 @@ import Timer from "../components/gameSession/Timer";
 import GuessButton from "../components/gameSession/GuessButton";
 import Score from "../components/gameSession/Score";
 import { useParams } from "react-router-dom";
-import { useCallback, useState, useEffect, use } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { useSessionSocket } from "../api/ws";
 import type { LatLngExpression } from "leaflet";
 import type { Session } from '../utils/interfaces/sessionInterface'
 import { fetchSession } from "../api/Lobby/LobbyServices";
 import { fetchRoundUrl } from "../api/GameSession/GameSessionServices";
+import type { Player } from '../utils/interfaces/playerInterface'
+import { LatLng } from "leaflet";
 
 export default function GameSession() {
     const { code } = useParams();
@@ -31,31 +33,13 @@ export default function GameSession() {
     // estado de interruptor do cronometro
     const [isRoundActive, setIsRoundActive] = useState<boolean>(false);
     // estado para saber a pontuação do jogador nesta sessão
-    const [playerScore, setPlayerScore] = useState<number>(0);
+    const [player, setPlayer] = useState<Player | null> (null)
+    const [playerId, setPlayerId] = useState<string | null>(() => {
+        // Inicializa com o localStorage
+        return localStorage.getItem('playerId');
+    });
     const [time, setTime] = useState<number>(0);
 
-    useEffect(() => {
-        if (code) {
-            fetchSession(code)
-                .then((sessionData) => {
-                    setSession(sessionData)
-                    setTime(sessionData.time_limit);
-                    setCurrentRoundNumber(sessionData.current_round_number);
-                    console.log("Dados da sessão:", sessionData);
-                    // Pega a url da imagem do round atual
-                    return fetchRoundUrl(code, sessionData.current_round_number);
-                })
-                .then((roundData) => {
-                    setCurrentImageUrl(roundData.image_url);
-                    console.log("URL da imagem:", roundData.image_url);
-                })
-                .catch((error) => {
-                    console.error("Error fetching session data:", error);
-                });
-        }
-    }, [code, currentRoundNumber]);
-
-    // Obtém sessão, pega imagem do round atual.
 
     // escuta as mensagens do servidor
     const handleWebSocketMessage = useCallback((data: any) => {
@@ -81,24 +65,63 @@ export default function GameSession() {
          }
               
         else if (data.type === 'round_timeout') { 
-            const posicaoReal: LatLngExpression = [data.location.latitude, data.location.longitude];
+            const posicaoReal: LatLngExpression = [data.correct_lat, data.correct_lon];
             setCorrectPosition(posicaoReal);
             setIsRoundActive(false); // desativa o cronometro
 
-            if (data.my_score !== undefined) { 
-                setPlayerScore(data.my_score);
-            }
+            setPlayer(data.players.find((p: any) => p.id === playerId));
+
         }
-    }, []);
+    }, [playerId]);
 
     // extrai o sendGuess do hook
-    const {sendGuess} = useSessionSocket(code!, handleWebSocketMessage);
+    const {sendGuess, reconnect} = useSessionSocket(code!, handleWebSocketMessage);
+
+    useEffect(() => {
+        if (code) {
+            fetchSession(code)
+                .then((sessionData) => {
+                    setSession(sessionData)
+                    setTime(sessionData.time_limit);
+                    setCurrentRoundNumber(sessionData.current_round_number);
+                    console.log("Dados da sessão:", sessionData);
+                    // Pega a url da imagem do round atual
+                    return fetchRoundUrl(code, sessionData.current_round_number);
+                })
+                .then((roundData) => {
+                    setCurrentImageUrl(roundData.image_url);
+                    console.log("URL da imagem:", roundData.image_url);
+                })
+                .catch((error) => {
+                    console.error("Error fetching session data:", error);
+                });
+        }
+    }, [code, currentRoundNumber]);
+
+    useEffect(() => {
+    // Verifica se já tentou reconectar antes para evitar loops
+    const hasReconnected = sessionStorage.getItem('has_reconnected');
+    
+    if (playerId && !hasReconnected) {
+        // Marca que já tentou reconectar
+        sessionStorage.setItem('has_reconnected', 'true');
+        reconnect(playerId);
+    }
+    
+    // Limpeza quando o componente desmontar
+    return () => {
+        sessionStorage.removeItem('has_reconnected');
+    };
+}, [playerId]); 
+
 
     // função chamada quando o player clica no botão de guess
     const handleConfirmGuess = () => {
         if (guessPosition && !alreadyGuessed) {
-            const position = guessPosition as any;
-            sendGuess(position.lat, position.lng); // envia para o back por websocket
+            console.log("guess pos", guessPosition)
+            const position = guessPosition as LatLng;
+            console.log("sending guess", position.lat, position.lng);
+            sendGuess(position.lat, position.lng, Date.now()); // envia para o back por websocket
             setAlreadyGuessed(true); // seta para true para desabilitar o botão
         }
     }
@@ -108,7 +131,7 @@ export default function GameSession() {
             <div className="flex flex-col items-center">
                 <Timer key={currentRoundNumber} initialSeconds={time} isActive={isRoundActive} />
 
-                <Score score={playerScore} />
+                <Score score={player?.score || 0} />
 
                 <Image imageUrl={currentImageUrl} />
 

@@ -2,7 +2,9 @@
 import time
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
-from .models import Session
+from django.utils import timezone
+
+from .models import Session, Round, Player
 
 def run_game_loop(session_id, channel_layer, session_group):
     """
@@ -15,6 +17,7 @@ def run_game_loop(session_id, channel_layer, session_group):
     session.save()
     
     while session.current_round_number < session.total_rounds:
+        session.refresh_from_db()
         # Início do round
         async_to_sync(channel_layer.group_send)(
             session_group,
@@ -25,37 +28,47 @@ def run_game_loop(session_id, channel_layer, session_group):
             }
         )
         current_time = session.time_limit
+        round_obj = Round.objects.select_related("location").get(
+        session=session,
+        round_number=session.current_round_number
+        )
+        session.round_started_at = timezone.now()
+        session.save(update_fields=["round_started_at"])
+
         # Aguarda o tempo do round
         while (current_time !=0):
             time.sleep(1)
             current_time -=1
-            async_to_sync(channel_layer.group_send)(
-            session_group,
-            {
-                "type": "round_time_update",
-                "round_number": session.current_round_number,
-                "message": f"Round {session.current_round_number} começou!"
-            }
-            )
 
-        
+        players = Player.objects.filter(session=session).order_by("-score")
+        players_data = [
+        {
+            "id": str(p.id),
+            "nickname": p.nickname,
+            "score": p.score,
+            "last_round_score": p.last_round_score
+        }
+        for p in players
+        ]
         # Fim do round
         async_to_sync(channel_layer.group_send)(
             session_group,
             {
                 "type": "round_timeout",
                 "round_number": session.current_round_number,
-                "message": f"Tempo do round {session.current_round_number} esgotado!"
+                "message": f"Tempo do round {session.current_round_number} esgotado!",
+                "correct_lon": round_obj.location.longitude,
+                "correct_lat": round_obj.location.latitude,
+                "players": players_data
             }
         )
-        time.sleep(10) 
 
         # Incrementa round
         session.current_round_number += 1
         session.save()
         
         # Pequena pausa entre rounds
-        time.sleep(2)
+        time.sleep(4)
     
     # Jogo finalizado
     async_to_sync(channel_layer.group_send)(

@@ -2,6 +2,7 @@ import uuid
 import random
 import string
 from django.db import models
+from django.utils import timezone
 
 
 class Session(models.Model):
@@ -42,9 +43,9 @@ class Session(models.Model):
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
+    round_started_at = models.DateTimeField(default=timezone.now)
     def __str__(self):
         return f"{self.name} ({self.code})"
-
 
 class Location(models.Model):
     image_url = models.URLField()

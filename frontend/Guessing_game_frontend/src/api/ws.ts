@@ -51,13 +51,21 @@ export function useSessionSocket(sessionCode: string, onMessage?: (data: any) =>
     }));
   } 
 
-  function sendGuess(latitude: number, longitude: number) {
+  function sendGuess(latitude: number, longitude: number, guess_timestamp: number) {
     sendMessage(JSON.stringify({
       action: 'submit_guess',
       guess: {
         latitude: latitude,
         longitude: longitude,
+        guess_timestamp: guess_timestamp
       }
+    }));
+  }
+
+  function reconnect(playerId: string){
+    sendMessage(JSON.stringify({
+      action: 'reconnect',
+      player_id: playerId
     }));
   }
 
@@ -68,6 +76,7 @@ export function useSessionSocket(sessionCode: string, onMessage?: (data: any) =>
     listPlayers,
     updateAvatar,
     sendGuess,
+    reconnect,
     isConnected: readyState === ReadyState.OPEN,
   };
 }
