@@ -129,14 +129,11 @@ export default function GameSession() {
     return (
         <div className="w-screen h-screen relative overflow-hidden bg-gray-900">
             <div className="absolute inset-0 z-0">
-                {alreadyGuessed && (
-                    <div className="absolute inset-0 z-[1000] bg-black/20 cursor-not-allowed"></div>
-                )}
-
                 <MapComponent 
                     position={guessPosition} 
                     setPosition={setGuessPosition}
                     correctPosition={correctPosition}
+                    alreadyGuessed={alreadyGuessed}
                 />
             </div>
             
@@ -148,17 +145,18 @@ export default function GameSession() {
                 </div>
 
                 <div className="pointer-events-auto mt-150">
-                    <GuessButton 
-                        onGuess={handleConfirmGuess}
-                        disabled={guessPosition === null || alreadyGuessed || !isRoundActive}
-                    />
+                    {!alreadyGuessed ? (
+                        <GuessButton 
+                            onGuess={handleConfirmGuess}
+                            // O botão só fica desativado se não tiver posição ou não estiver ativo
+                            disabled={guessPosition === null || !isRoundActive}
+                        />
+                    ) : (
+                        <span className="text-green-400 bg-gray-900/80 px-6 py-3 rounded-xl border-2 border-green-500 font-bold shadow-lg">
+                            Palpite enviado! A aguardar outros jogadores...
+                        </span>
+                    )}
                 </div>
-
-                {alreadyGuessed && (
-                    <span className="text-green-500 font-bold">
-                        Palpite enviado! A aguardar outros jogadores...
-                    </span>
-                )}
             </div>
 
             <div className="absolute bottom-4 left-4 z-10 pointer-events-auto transition-transform duration-300 
