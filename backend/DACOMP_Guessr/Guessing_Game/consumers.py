@@ -136,6 +136,7 @@ class PlayerConsumer(WebsocketConsumer):
         nickname = player_data['nickname']
         id = player_data.get('id') 
         avatar_config = player_data['avatar_config']
+        new = False
 
         existing_player = None
         if id:
@@ -162,6 +163,7 @@ class PlayerConsumer(WebsocketConsumer):
                 },
                 is_connected=True
             )
+            new = True
 
         self.id = player.id
         self.player = player
@@ -171,7 +173,8 @@ class PlayerConsumer(WebsocketConsumer):
             'type': 'join_success',
             'id': str(player.id),
             'avatar_config': player.avatar_config,
-            'message': f'Bem-vindo, {player.nickname}!'
+            'message': f'Bem-vindo, {player.nickname}!',
+            'new': new
         }))
 
         self.notify_players_update()

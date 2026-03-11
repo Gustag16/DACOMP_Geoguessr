@@ -18,6 +18,7 @@ interface WebSocketMessage {
     players?: Array<any>;
     player?: any;
     status?: string;
+    new?: boolean;
 }
 
 export default function Lobby() {
@@ -92,7 +93,7 @@ export default function Lobby() {
     switch (data.type) {
         case 'join_success':
             setHasJoined(true);
-            if (playerId === null) {
+            if (data.new === true) {
             setPlayerId(data.id!);
             localStorage.setItem('playerId', data.id!);
             }
