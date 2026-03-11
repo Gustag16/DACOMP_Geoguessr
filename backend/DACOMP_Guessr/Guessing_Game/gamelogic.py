@@ -16,7 +16,7 @@ def run_game_loop(session_id, channel_layer, session_group):
     session.current_round_number = 1
     session.save()
     
-    while session.current_round_number < session.total_rounds:
+    while session.current_round_number < (session.total_rounds + 1):
         session.refresh_from_db()
         # Início do round
         async_to_sync(channel_layer.group_send)(

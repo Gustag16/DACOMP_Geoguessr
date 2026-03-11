@@ -6,14 +6,18 @@ interface ImageProps {
 export default function Image({imageUrl}: ImageProps) {
   const VITE_imageUrl = import.meta.env.VITE_BACKEND_URL + imageUrl;
   return (
-    <div className="flex justify-center items-center h-120 w-120">
+    <div className="flex justify-center items-center">
         { imageUrl ? (
             <img
                 src={VITE_imageUrl} 
                 alt='Local da Rodada' 
-                className="max-w-full h-auto rounded-lg shadow-md" 
+                className="max-h-[60vh] max-w-[80vw] w-auto h-auto rounded-xl shadow-2xl object-contain"
             />
-        ) : (<p>Aguardando inicio da rodada...</p>) }
+        ) : (
+            <span className="bg-gray-800 text-white p-4 rounded-xl shadow-md">
+                Aguardando inicio da rodada...
+            </span>
+        ) }
     </div>
   )
 }

@@ -47,7 +47,7 @@ export default function GameSession() {
         if (data.type === 'session_status_update') {
             // puxa a url que veio do PostgreSQL (por backend)
             setCurrentImageUrl(data.location.image_url);
-            console.log("URL da imagem:", data.location.image_url);
+            console.log("URL da imagem:", currentImageUrl);
 
             setGuessPosition(null);
             setAlreadyGuessed(false);
@@ -127,28 +127,10 @@ export default function GameSession() {
     }
 
     return (
-        <div className="flex flex-col gap-4">
-            <div className="flex flex-col items-center">
-                <Timer key={currentRoundNumber} initialSeconds={time} isActive={isRoundActive} />
-
-                <Score score={player?.score || 0} />
-
-                <Image imageUrl={currentImageUrl} />
-
-                <GuessButton 
-                    onGuess={handleConfirmGuess}
-                    disabled={guessPosition === null || alreadyGuessed || !isRoundActive}
-                />
-
+        <div className="w-screen h-screen relative overflow-hidden bg-gray-900">
+            <div className="absolute inset-0 z-0">
                 {alreadyGuessed && (
-                    <span className="text-green-500 font-bold">
-                        Palpite enviado! A aguardar outros jogadores...
-                    </span>
-                )}
-            </div>
-            <div className="w-[80%] h-[70%] flex flex-col items-center justify-center gap-4  mb-6 mx-auto relative">
-                {alreadyGuessed && (
-                    <div className="absolute inset-0 z-[1000] bg-black/10 cursor-not-allowed rounded"></div>
+                    <div className="absolute inset-0 z-[1000] bg-black/20 cursor-not-allowed"></div>
                 )}
 
                 <MapComponent 
@@ -157,6 +139,33 @@ export default function GameSession() {
                     correctPosition={correctPosition}
                 />
             </div>
+            
+            <div className="absolute top-4 left-0 right-0 z-10 flex flex-col items-center gap-4 pointer-events-none">
+                
+                <div className="flex gap-8 pointer-events-auto">
+                    <Timer key={currentRoundNumber} initialSeconds={time} isActive={isRoundActive} />
+                    <Score score={player?.score || 0} />
+                </div>
+
+                <div className="pointer-events-auto mt-150">
+                    <GuessButton 
+                        onGuess={handleConfirmGuess}
+                        disabled={guessPosition === null || alreadyGuessed || !isRoundActive}
+                    />
+                </div>
+
+                {alreadyGuessed && (
+                    <span className="text-green-500 font-bold">
+                        Palpite enviado! A aguardar outros jogadores...
+                    </span>
+                )}
+            </div>
+
+            <div className="absolute bottom-4 left-4 z-10 pointer-events-auto transition-transform duration-300 
+            ease-in-out origin-bottom-left scale-50 hover:scale-145 rounded-xl shadow-2xl">
+                <Image imageUrl={currentImageUrl} />
+            </div>
+            
         </div>
     )
 }
