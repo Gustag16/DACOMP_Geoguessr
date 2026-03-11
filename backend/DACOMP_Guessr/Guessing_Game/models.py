@@ -98,8 +98,10 @@ class Guess(models.Model):
         Player, related_name='guesses', on_delete=models.CASCADE)
     round = models.ForeignKey(
         Round, related_name='guesses', on_delete=models.CASCADE)
-    #session = models.ForeignKey(
-        #Session, related_name='guesses', on_delete=models.CASCADE)
+    session = models.ForeignKey(
+        Session, related_name='guesses', on_delete=models.CASCADE, null=True,
+        blank=True  # Permite que o Django aceite formulários sem esse campo
+        )
 
     # Onde o jogador clicou
     latitude_guess = models.FloatField()

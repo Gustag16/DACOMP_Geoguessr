@@ -72,7 +72,7 @@ export default function GameSession() {
             setPlayer(data.players.find((p: any) => p.id === playerId));
 
         }
-    }, [playerId]);
+    }, [playerId, currentImageUrl]);
 
     // extrai o sendGuess do hook
     const {sendGuess, reconnect} = useSessionSocket(code!, handleWebSocketMessage);
@@ -144,7 +144,7 @@ export default function GameSession() {
                     <Score score={player?.score || 0} />
                 </div>
 
-                <div className="pointer-events-auto mt-150">
+                <div className="pointer-events-auto fixed bottom-10 left-0 right-0 flex justify-center ">
                     {!alreadyGuessed ? (
                         <GuessButton 
                             onGuess={handleConfirmGuess}

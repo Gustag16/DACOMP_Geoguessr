@@ -272,7 +272,8 @@ class PlayerConsumer(WebsocketConsumer):
             "round_number": event["round_number"],
             "correct_lon": event["correct_lon"],
             "correct_lat": event["correct_lat"],
-            "players": event["players"]
+            "players": event["players"],
+            "guesses": event["guesses"]
         }))
 
     def handle_list_players(self):
@@ -387,8 +388,6 @@ class PlayerConsumer(WebsocketConsumer):
         }))
 
     def process_guess(self, data):
-        # id, latitude_guess, longitude_guess, distance_in_meters,
-        # points_awarded, timestamp, player_id, round-id
         print(f"\n=== PROCESSANDO GUESS ===")
         self.session.refresh_from_db()
         print(f"Player: {self.player.nickname if hasattr(self, 'player') else 'None'}")
@@ -462,9 +461,21 @@ class PlayerConsumer(WebsocketConsumer):
         print(f"last_round_score: {self.player.last_round_score}")
         
         # Busca o player novamente do banco para confirmar
+        # id, latitude_guess, longitude_guess, distance_in_meters,
+        # points_awarded, timestamp, player_id, round-id
         player_verification = Player.objects.get(id=self.player.id)
-        Guess.objects.create(
         print(f"VERIFICAÇÃO - Score no banco: {player_verification.score}")
+
+        Guess.objects.create(
+            latitude_guess =guess_lat,
+            longitude_guess = guess_lon,
+            distance_in_meters = distance,
+            points_awarded = score,
+            timestamp = guess_time,
+            player_id = self.player.id,
+            round_id = round_obj.id,
+            session_id = self.session.id
+        )
         
         self.send(text_data=json.dumps({
             'type': 'guess_received',
