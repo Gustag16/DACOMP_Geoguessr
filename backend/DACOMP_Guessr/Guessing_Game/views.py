@@ -1,6 +1,10 @@
+from functools import cache
+import os
+
 from django.http import HttpResponse
+from django.core.cache import cache
 from django.shortcuts import render
-from django.http import StreamingHttpResponse
+from django.http import StreamingHttpResponse 
 from django.http import JsonResponse
 from django.middleware.csrf import get_token
 from django.views.decorators.csrf import ensure_csrf_cookie
@@ -12,6 +16,12 @@ from .models import *
 from .serializers import *
 import json
 import requests
+from channels.layers import get_channel_layer
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
+from asgiref.sync import async_to_sync
+from .gamelogic import run_game_loop
+import threading
 
 from DACOMP_Guessr.settings import CSRF_COOKIE_AGE
 from DACOMP_Guessr import settings
@@ -105,7 +115,54 @@ def proxy_drive(request):
 
     return response
 
+def proxy_image_download(request):
+    image_url = request.GET.get("url")
+    if not image_url:
+        return JsonResponse({"error": "Missing 'url' parameter"}, status=400)
+
+    try:
+        r = requests.get(image_url, stream=True)
+        r.raise_for_status()
+
+        content_type = r.headers.get("Content-Type", "application/octet-stream")
+        content_disposition = r.headers.get("Content-Disposition", "")
+        filename = "download"
+        if "filename=" in content_disposition:
+            filename = content_disposition.split("filename=")[-1].strip('"\'')
+
+        response = StreamingHttpResponse(
+            r.iter_content(chunk_size=8192),
+            content_type=content_type
+        )
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        return response
+
+    except requests.RequestException as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
 # ==================
+def start_game(session_code):
+    """
+    Inicia o jogo em uma thread separada
+    """
+    session = Session.objects.get(code=session_code)
+    channel_layer = get_channel_layer()
+    session_group = f"session_{session_code}"
+    
+    # Atualiza status para PLAYING
+    session.status = Session.Status.PLAYING
+    session.current_round_number = 1
+    session.save()
+    
+    # Inicia thread com a função independente
+    thread = threading.Thread(
+        target=run_game_loop,
+        args=(session.id, channel_layer, session_group),
+        daemon=True
+    )
+    thread.start()
+    
+    return thread
 
 # === Session ====
 
@@ -123,12 +180,44 @@ class SessionViewSet(viewsets.ModelViewSet):
             if new_status in dict(Session.Status.choices):
                 session.status = new_status
                 session.save()
+
+                if(new_status == Session.Status.PLAYING):
+                    # Notifica todos os jogadores via WebSocket
+                    channel_layer = get_channel_layer()
+                    group_name = f'session_{session.code}'
+                    
+                    async_to_sync(channel_layer.group_send)(
+                        group_name,
+                        {
+                            'type': 'session_status_update', 
+                            'status': 'PLAYING',
+                            'message': 'O jogo vai começar!'
+                        }
+                    )
                 return Response({"message": "Status updated"})
             else:
                 return Response({"error": "Invalid status"}, status=400)
         except Session.DoesNotExist:
             return Response({"error": "Session not found"}, status=404)
     
+    # Inicializar rounds via api
+    @action(detail=True, methods=['post'])
+    def initialize_rounds(self, request, code=None):  # Corrigido para code
+        try:
+            session = self.get_object()
+            data = request.data
+            
+            # Verifica autorização
+            if data.get('nickname') != "ULTRAHOST":
+                return Response({"error": "Unauthorized"}, status=403)
+            
+            # Inicia o jogo
+            start_game(code)
+            
+            return Response({"message": "Game started successfully"})
+            
+        except Session.DoesNotExist:
+            return Response({"error": "Session not found"}, status=404)
 
 
 # ==================
@@ -138,3 +227,76 @@ class SessionViewSet(viewsets.ModelViewSet):
 class PlayerViewSet(viewsets.ModelViewSet):
     queryset = Player.objects.all()
     serializer_class = PlayerSerializer
+
+# ==== Round ====
+
+class RoundViewSet(viewsets.ModelViewSet):
+    queryset = Round.objects.all()
+    serializer_class = RoundSerializer
+
+    @action(detail=False, methods=['get'], url_path='current-image')
+    def get_current_round_image(self, request):
+        round_number = request.query_params.get('round_number')
+        session_code = request.query_params.get('session_code')
+        
+        if not session_code or not round_number:
+            return JsonResponse({"error": "session_code and round_number are required"}, status=400)
+        
+        try:
+            session = Session.objects.get(code=session_code)
+            round_obj = Round.objects.get(session_id=session.id, round_number=round_number)
+            
+            # Cria o diretório se não existir
+            media_dir = os.path.join(settings.MEDIA_ROOT, 'round_images', session_code)
+            os.makedirs(media_dir, exist_ok=True)
+            
+            filename = f"round_{round_number}_session_{session_code}.jpg"
+            file_path = os.path.join(media_dir, filename)
+            
+            # URL que será acessada pelo frontend
+            image_url = f"{settings.MEDIA_URL}round_images/{session_code}/{filename}"
+            
+            # Verifica se o arquivo já existe
+            if os.path.exists(file_path):
+                return JsonResponse({
+                    "image_url": image_url,
+                    "round_number": round_number,
+                    "session_code": session_code
+                })
+            
+            # Baixa a imagem
+            original_url = round_obj.location.image_url
+            response = requests.get(original_url, timeout=10)
+            
+            if response.status_code != 200:
+                return JsonResponse({"error": "Erro ao baixar imagem externa"}, status=502)
+            
+            # Salva a imagem
+            with open(file_path, 'wb') as f:
+                f.write(response.content)
+            
+            return JsonResponse({
+                "image_url": image_url,
+                "round_number": round_number,
+                "session_code": session_code,
+                "message": "Imagem baixada e disponibilizada com sucesso"
+            })
+            
+        except Session.DoesNotExist:
+            return JsonResponse({"error": "Sessão não encontrada"}, status=404)
+        except Round.DoesNotExist:
+            return JsonResponse({"error": "Round não encontrado"}, status=404)
+        except Exception as e:
+            return JsonResponse({"error": f"Erro interno: {str(e)}"}, status=500)
+
+# ==================
+        except Session.DoesNotExist:
+            return JsonResponse(
+                {"error": f"Session with code '{session_code}' not found"}, 
+                status=404
+            )
+        except Round.DoesNotExist:
+            return JsonResponse(
+                {"error": f"Round {round_number} not found for session {session_code}"}, 
+                status=404
+            )

@@ -19,6 +19,8 @@ from django.urls import path
 from Guessing_Game.views import proxy_drive
 from django.urls import path, include
 from Guessing_Game import views
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -27,3 +29,5 @@ urlpatterns = [
     path('set-csrf-token/', views.set_csrf_token, name='set_csrf_token'),
     path('api/', include('Guessing_Game.urls')),
 ]
+
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

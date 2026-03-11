@@ -11,6 +11,7 @@ export interface PlayerAvatarProps {
   face: string;
   acc: string;
   color: string;
+  size?: 'sm' | 'md' | 'lg';
 }
 
 // Dicionário de cores
@@ -69,32 +70,40 @@ const accShapes: Record<string, React.ReactNode> = {
   nenhum: null // caso o jogador não queira acessório
 };
 
-export default function PlayerAvatar({ head, face, acc, color }: PlayerAvatarProps) {
+// Dicionário de tamanhos do Tailwind
+const sizeClasses = {
+  sm: 'w-16 h-16 rounded-[12px]',     // Pequeno (para o PlayerCard)
+  md: 'w-[100px] h-[100px] rounded-[20px]', // Médio (o original, para o PlayerEdit)
+  lg: 'w-32 h-32 rounded-[24px]'      // Grande (caso precise no futuro, como no pódio)
+};
+
+export default function PlayerAvatar({ head, face, acc, color, size = 'md' }: PlayerAvatarProps) {
   // pega a cor correspondente ou usa uma cor neutra como fallback
   const fillColor = colorMap[color] || '#9ca3af'; 
+  
+  // pega a classe de tamanho escolhida (se não passar nada, usa o 'md')
+  const selectedSize = sizeClasses[size]
 
   return (
-    <svg 
-      viewBox="0 0 100 100" 
-      width="100" 
-      height="100" 
-      xmlns="http://www.w3.org/2000/svg"
-      className="player-avatar"
-    >
-      {/* Camada 1: Forma da cabeça com a cor escolhida */}
-      <g key="head" fill={fillColor}>
-        {headShapes[head]}
-      </g>
-
-      {/* Camada 2: Expressão facial */}
-      <g key="face">
-        {faceShapes[face]}
-      </g>
-
-      {/* Camada 3: Acessório por cima de tudo */}
-      <g key="acc">
-        {accShapes[acc]}
-      </g>
-    </svg>
+    <div className={`${selectedSize} bg-zinc-300 flex items-center justify-center overflow-hidden`}>
+      <svg
+        viewBox="0 0 100 100"
+        className="w-full h-full"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        {/* Camada 1: Forma da cabeça com a cor escolhida */}
+        <g key="head" fill={fillColor}>
+          {headShapes[head]}
+        </g>
+        {/* Camada 2: Expressão facial */}
+        <g key="face">
+          {faceShapes[face]}
+        </g>
+        {/* Camada 3: Acessório por cima de tudo */}
+        <g key="acc">
+          {accShapes[acc]}
+        </g>
+      </svg>
+    </div>
   );
 }

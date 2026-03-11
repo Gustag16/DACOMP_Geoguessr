@@ -32,8 +32,8 @@ export function useSessionSocket(sessionCode: string, onMessage?: (data: any) =>
     }));
   }
 
-  function startRound() {
-    sendMessage(JSON.stringify({ action: 'start_round' }));
+  function startRoundManual() {
+    sendMessage(JSON.stringify({ action: 'start_round_manual', nickname: "ULTRAHOST" }));
   }
 
 
@@ -51,12 +51,32 @@ export function useSessionSocket(sessionCode: string, onMessage?: (data: any) =>
     }));
   } 
 
+  function sendGuess(latitude: number, longitude: number, guess_timestamp: number) {
+    sendMessage(JSON.stringify({
+      action: 'submit_guess',
+      guess: {
+        latitude: latitude,
+        longitude: longitude,
+        guess_timestamp: guess_timestamp
+      }
+    }));
+  }
+
+  function reconnect(playerId: string){
+    sendMessage(JSON.stringify({
+      action: 'reconnect',
+      player_id: playerId
+    }));
+  }
+
   return {
     join,
-    startRound,
+    startRoundManual,
     readyState,
     listPlayers,
     updateAvatar,
+    sendGuess,
+    reconnect,
     isConnected: readyState === ReadyState.OPEN,
   };
 }
