@@ -7,8 +7,8 @@ export default function GuessButton({onGuess, disabled}: GuessButtonProps) {
   return (
     <div>
         <button
-          className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded 
-          disabled:opacity-50 disabled:cursor-not-allowed"
+          className="bg-purple-800/85 hover:bg-purple-700 text-white text-2xl font-normal font-['Audiowide'] py-2 px-6 
+          border-2 border-purple-800 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
           onClick={onGuess}
           disabled={disabled}
         >
