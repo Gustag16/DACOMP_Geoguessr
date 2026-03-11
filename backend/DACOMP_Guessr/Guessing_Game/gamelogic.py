@@ -4,7 +4,7 @@ from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from django.utils import timezone
 
-from .models import Session, Round, Player
+from .models import Session, Round, Player, Guess
 
 def run_game_loop(session_id, channel_layer, session_group):
     """
@@ -50,6 +50,22 @@ def run_game_loop(session_id, channel_layer, session_group):
         }
         for p in players
         ]
+
+        guesses = Guess.objects.filter(session=session, round=round_obj)
+        guesses_data = [
+            {
+                "id": str(g.id),
+                "latitude_guess": g.latitude_guess,
+                "longitude_guess": g.longitude_guess,
+                "distance_in_meters": g.distance_in_meters,
+                "points_awarded": g.points_awarded,
+                "timestamp": g.timestamp,
+                "player_id":g.player_id,
+                "round_id": g.round_id,
+                "session_id": g.session_id
+            }
+            for g in guesses
+        ]
         # Fim do round
         async_to_sync(channel_layer.group_send)(
             session_group,
@@ -59,7 +75,8 @@ def run_game_loop(session_id, channel_layer, session_group):
                 "message": f"Tempo do round {session.current_round_number} esgotado!",
                 "correct_lon": round_obj.location.longitude,
                 "correct_lat": round_obj.location.latitude,
-                "players": players_data
+                "players": players_data,
+                "guesses": guesses_data
             }
         )
 
