@@ -23,7 +23,7 @@ def haversine(lat1, lon1, lat2, lon2):
     return R * c  # distância em metros
 
 def distance_score(distance_m):
-    score = 1000 * math.exp(-distance_m / -500)
+    score = 1000 * math.exp(-distance_m / 600)
     return min(1000, score)
 
 def time_multiplier(remaining_time, time_limit):
@@ -34,12 +34,13 @@ def calculate_score(guess_lat, guess_lon, real_lat, real_lon, remaining_time, ti
     distance = haversine(guess_lat, guess_lon, real_lat, real_lon)
 
     dist_score = distance_score(distance)
+    print(dist_score)
 
     time_bonus = time_multiplier(remaining_time, time_limit)
 
-    final_score = dist_score * (0.5 + 0.5 * time_bonus)
+    final_score = dist_score * (0.75 + 0.25 * time_bonus)
 
-    return min(1000, round(final_score))
+    return max(0, min(1000, round(final_score)))
 
 class PlayerConsumer(WebsocketConsumer):
     def connect(self):
