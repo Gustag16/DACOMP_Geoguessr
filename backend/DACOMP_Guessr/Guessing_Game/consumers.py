@@ -4,7 +4,7 @@ import threading
 from channels.generic.websocket import WebsocketConsumer
 from channels.layers import get_channel_layer
 from django.utils import timezone
-from .models import Session, Player, Round, Location
+from .models import Session, Player, Round, Location, Guess
 import math
 
 
@@ -293,7 +293,7 @@ class PlayerConsumer(WebsocketConsumer):
     def delete_player_on_delayed_disconnection(self, player_id):
         # Espera um tempo para garantir que a desconexão foi intencional
         import time
-        time.sleep(30) 
+        time.sleep(90) 
         try:
             player = Player.objects.get(id=player_id)
             if not player.is_connected:
@@ -387,6 +387,8 @@ class PlayerConsumer(WebsocketConsumer):
         }))
 
     def process_guess(self, data):
+        # id, latitude_guess, longitude_guess, distance_in_meters,
+        # points_awarded, timestamp, player_id, round-id
         print(f"\n=== PROCESSANDO GUESS ===")
         self.session.refresh_from_db()
         print(f"Player: {self.player.nickname if hasattr(self, 'player') else 'None'}")
@@ -461,6 +463,7 @@ class PlayerConsumer(WebsocketConsumer):
         
         # Busca o player novamente do banco para confirmar
         player_verification = Player.objects.get(id=self.player.id)
+        Guess.objects.create(
         print(f"VERIFICAÇÃO - Score no banco: {player_verification.score}")
         
         self.send(text_data=json.dumps({
