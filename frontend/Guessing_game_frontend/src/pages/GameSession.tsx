@@ -17,6 +17,7 @@ import { fetchSession } from "../api/Lobby/LobbyServices";
 import { fetchRoundUrl } from "../api/GameSession/GameSessionServices";
 import type { Player } from '../utils/interfaces/playerInterface'
 import { LatLng } from "leaflet";
+import RankingBoard from "../components/gameSession/RankingBoard";
 
 export default function GameSession() {
     const { code } = useParams();
@@ -39,6 +40,8 @@ export default function GameSession() {
         return localStorage.getItem('playerId');
     });
     const [time, setTime] = useState<number>(0);
+    // estado para o ranking
+    const [rankingPlayers, setRankingPlayers] = useState<any[]>([]);
 
 
     // escuta as mensagens do servidor
@@ -71,6 +74,8 @@ export default function GameSession() {
 
             setPlayer(data.players.find((p: any) => p.id === playerId));
 
+            // salva a lista inteira de jogadores que veio do gamelogic.py
+            setRankingPlayers(data.players);
         }
     }, [playerId]);
 
@@ -162,6 +167,10 @@ export default function GameSession() {
             <div className="absolute bottom-4 left-4 z-10 pointer-events-auto transition-transform duration-300 
             ease-in-out origin-bottom-left scale-50 hover:scale-145 rounded-xl shadow-2xl">
                 <Image imageUrl={currentImageUrl} />
+            </div>
+
+            <div className="absolute top-4 right-4">
+                <RankingBoard players={rankingPlayers} />
             </div>
             
         </div>
