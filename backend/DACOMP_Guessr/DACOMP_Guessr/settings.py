@@ -30,7 +30,7 @@ ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
     '0.0.0.0',
-    'consequences-achieved-atlas-notre.trycloudflare.com',
+    'barn-mortality-translator-hamilton.trycloudflare.com',
     '.trycloudfare.com',
 ]
 
