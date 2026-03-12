@@ -1,5 +1,7 @@
 from django.core.management.base import BaseCommand
 from Guessing_Game.management.seeders.seeder_location import run as seed_locations
+from Guessing_Game.management.seeders.seeder_session import run as seed_sessions
+from Guessing_Game.management.seeders.seeder_rounds import run as seed_rounds
 
 class Command(BaseCommand):
     help = "Seed database with initial data"
@@ -8,5 +10,7 @@ class Command(BaseCommand):
         self.stdout.write(self.style.WARNING("Seeding database..."))
 
         seed_locations(self.stdout)
+        seed_sessions(self.stdout)
+        seed_rounds(self.stdout)
 
         self.stdout.write(self.style.SUCCESS("Seeding complete"))
