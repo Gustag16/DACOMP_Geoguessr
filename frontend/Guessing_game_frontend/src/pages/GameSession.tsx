@@ -8,6 +8,8 @@ import 'leaflet/dist/leaflet.css';
 import Timer from "../components/gameSession/Timer";
 import GuessButton from "../components/gameSession/GuessButton";
 import Score from "../components/gameSession/Score";
+import { useNavigate, useParams } from "react-router-dom";
+import { useCallback, useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useCallback, useState, useEffect} from "react";
 import { useSessionSocket } from "../api/ws";
@@ -16,9 +18,12 @@ import { fetchSession } from "../api/Lobby/LobbyServices";
 import { fetchRoundUrl } from "../api/GameSession/GameSessionServices";
 import type { Player } from '../utils/interfaces/playerInterface'
 import { LatLng } from "leaflet";
+import RankingBoard from "../components/gameSession/RankingBoard";
+import CurrentRound from "../components/gameSession/CurrentRound";
 
 export default function GameSession() {
     const { code } = useParams();
+    const navigate = useNavigate();
     const [currentRoundNumber, setCurrentRoundNumber] = useState<number>(0);
     // estado para guardar a imagem da rodada atual
     const [currentImageUrl, setCurrentImageUrl] = useState<string>("");
@@ -34,20 +39,28 @@ export default function GameSession() {
     const [player, setPlayer] = useState<Player | null> (null)
     const playerId = localStorage.getItem('playerId');
     const [time, setTime] = useState<number>(0);
+    // estado para o ranking
+    const [rankingPlayers, setRankingPlayers] = useState<any[]>([]);
 
 
     // escuta as mensagens do servidor
     const handleWebSocketMessage = useCallback((data: any) => {
         // se a rodada começou
         if (data.type === 'session_status_update') {
-            // puxa a url que veio do PostgreSQL (por backend)
-            setCurrentImageUrl(data.location.image_url);
-            console.log("URL da imagem:", currentImageUrl);
 
-            setGuessPosition(null);
-            setAlreadyGuessed(false);
-            setCorrectPosition(null);;
-            setIsRoundActive(false);
+            // primeiro verifica se o jogo acabou
+            if (data.status === 'FINISHED') {
+                navigate(`/results/${code}`, { state: { rankingFinal: data.players } });
+            } 
+            else if (data.location) {
+                // puxa a url que veio do PostgreSQL (por backend)
+                setCurrentImageUrl(data.location.image_url);
+                console.log("URL da imagem:", data.location.image_url);
+                setGuessPosition(null);
+                setAlreadyGuessed(false);
+                setCorrectPosition(null);
+                setIsRoundActive(false);
+            }
          }
 
         else if(data.type === 'round_start') {
@@ -66,9 +79,10 @@ export default function GameSession() {
 
             setPlayer(data.players.find((p: any) => p.id === playerId));
 
+            // salva a lista inteira de jogadores que veio do gamelogic.py
+            setRankingPlayers(data.players);
         }
-    }, [playerId, currentImageUrl]);
-
+    }, [playerId, navigate, currentImageUrl]);
     // extrai o sendGuess do hook
     const {sendGuess} = useSessionSocket(code!, handleWebSocketMessage);
 
@@ -120,6 +134,7 @@ export default function GameSession() {
                 <div className="flex gap-8 pointer-events-auto">
                     <Timer key={currentRoundNumber} initialSeconds={time} isActive={isRoundActive} />
                     <Score score={player?.score || 0} />
+                    <CurrentRound currentRoundNumber={currentRoundNumber} />
                 </div>
 
                 <div className="pointer-events-auto fixed bottom-10 left-0 right-0 flex justify-center ">
@@ -140,6 +155,10 @@ export default function GameSession() {
             <div className="absolute bottom-4 left-4 z-10 pointer-events-auto transition-transform duration-300 
             ease-in-out origin-bottom-left scale-50 hover:scale-145 rounded-xl shadow-2xl">
                 <Image imageUrl={currentImageUrl} />
+            </div>
+
+            <div className="absolute top-4 right-4">
+                <RankingBoard players={rankingPlayers} />
             </div>
             
         </div>
