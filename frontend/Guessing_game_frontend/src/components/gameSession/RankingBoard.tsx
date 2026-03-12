@@ -1,4 +1,3 @@
-import React from 'react'
 import PlayerAvatar from '../Lobby/PlayerAvatar';
 
 interface RankingPlayer {

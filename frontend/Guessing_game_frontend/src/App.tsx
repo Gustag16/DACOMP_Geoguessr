@@ -6,7 +6,6 @@ import GameSession from './pages/GameSession'
 import ResultsPage from './pages/ResultsPage'
 import HostPage from './pages/HostPage'
 import AddLocation from './pages/AddLocation'
-import 'leaflet/dist/leaflet.css';
 function App() {
 
   return (

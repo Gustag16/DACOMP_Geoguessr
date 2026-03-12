@@ -4,12 +4,14 @@ import 'leaflet/dist/leaflet.css';
 import type { LatLngExpression } from 'leaflet';
 import L from 'leaflet';
 import { useEffect } from 'react';
+import type { Guess } from '../../utils/interfaces/guessInterface';
 
 interface MapProps {
   position: LatLngExpression | null;
   setPosition: (pos: LatLngExpression) => void;
   correctPosition: LatLngExpression | null;
   alreadyGuessed: boolean;
+  guesses: Guess[] | null ;
 }
 
 // ator que escuta os cliques
@@ -58,7 +60,7 @@ const greenIcon = new L.Icon.Default({
   className: 'hue-rotate-[260deg] brightness-110 saturate-[200%]' 
 });
 
-const MapComponent = ({position, setPosition, correctPosition, alreadyGuessed}: MapProps) => {
+const MapComponent = ({position, setPosition, correctPosition, alreadyGuessed, guesses}: MapProps) => {
 
   return (
     <div className="w-full h-full"> 
@@ -73,6 +75,19 @@ const MapComponent = ({position, setPosition, correctPosition, alreadyGuessed}: 
         />
 
         <LocationMarker position={position} setPosition={setPosition} alreadyGuessed={alreadyGuessed} />
+
+        {correctPosition && guesses && guesses.map((g) => {
+          const guessPos: LatLngExpression = [g.latitude_guess, g.longitude_guess];
+
+          return (
+            <Marker key={g.id} position={guessPos}>
+              <Popup>
+                Player Guess<br/>
+                {g.latitude_guess}, {g.longitude_guess}
+              </Popup>
+            </Marker>
+          );
+        })}
 
         {/*desenha o marker da resposta correta quando a rodada acaba*/}
         {correctPosition && (
