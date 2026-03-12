@@ -11,7 +11,7 @@ import Score from "../components/gameSession/Score";
 import { useNavigate, useParams } from "react-router-dom";
 import { useCallback, useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { useCallback, useState, useEffect, useRef } from "react";
+import { useCallback, useState, useEffect} from "react";
 import { useSessionSocket } from "../api/ws";
 import type { LatLngExpression } from "leaflet";
 import { fetchSession } from "../api/Lobby/LobbyServices";
@@ -84,7 +84,7 @@ export default function GameSession() {
         }
     }, [playerId, navigate, currentImageUrl]);
     // extrai o sendGuess do hook
-    const {sendGuess, reconnect} = useSessionSocket(code!, handleWebSocketMessage);
+    const {sendGuess} = useSessionSocket(code!, handleWebSocketMessage);
 
     useEffect(() => {
         if (code) {
@@ -105,22 +105,6 @@ export default function GameSession() {
                 });
         }
     }, [code, currentRoundNumber]);
-
-    useEffect(() => {
-        // Verifica se já tentou reconectar antes para evitar loops
-        const hasReconnected = sessionStorage.getItem('has_reconnected');
-        
-        if (playerId && !hasReconnected) {
-            // Marca que já tentou reconectar
-            sessionStorage.setItem('has_reconnected', 'true');
-            reconnect(playerId);
-        }
-        
-        // Limpeza quando o componente desmontar
-        return () => {
-            sessionStorage.removeItem('has_reconnected');
-        };
-    }, [playerId]); 
 
 
     // função chamada quando o player clica no botão de guess

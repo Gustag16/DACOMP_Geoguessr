@@ -12,7 +12,18 @@ export function useSessionSocket(sessionCode: string, onMessage?: (data: any) =>
     ? `${VITE_WS_URL}/lobby/${sessionCode}/` 
     : `${protocol}${host}/ws/lobby/${sessionCode}/`;
   const { sendMessage, readyState } = useWebSocket(socketUrl, {
-    onOpen: () => console.log('ws open'),
+    onOpen: () => {
+    console.log('ws open');
+
+    const playerId = localStorage.getItem("playerId");
+
+      if (playerId) {
+        sendMessage(JSON.stringify({
+          action: "reconnect",
+          player_id: playerId
+        }));
+      }
+    },
     onClose: () => console.log('ws closed'),
     shouldReconnect: () => true,
     reconnectAttempts: 10,
