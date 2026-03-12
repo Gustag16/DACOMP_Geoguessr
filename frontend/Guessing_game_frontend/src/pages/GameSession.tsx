@@ -41,7 +41,7 @@ export default function GameSession() {
     const [time, setTime] = useState<number>(0);
     // estado para o ranking
     const [rankingPlayers, setRankingPlayers] = useState<any[]>([]);
-
+    const [showRank, setShowRank] = useState<boolean>(false);
 
     // escuta as mensagens do servidor
     const handleWebSocketMessage = useCallback((data: any) => {
@@ -70,6 +70,7 @@ export default function GameSession() {
             setIsRoundActive(false);
             setCurrentRoundNumber((prev) => prev + 1);
             setIsRoundActive(true);
+            setShowRank(false)
          }
               
         else if (data.type === 'round_timeout') { 
@@ -81,6 +82,7 @@ export default function GameSession() {
 
             // salva a lista inteira de jogadores que veio do gamelogic.py
             setRankingPlayers(data.players);
+            setShowRank(true)
             setGuesses(data.guesses)
         }
     }, [playerId, navigate, code]);
@@ -159,9 +161,12 @@ export default function GameSession() {
                 <Image imageUrl={currentImageUrl} />
             </div>
 
-            <div className="absolute top-4 right-4">
-                <RankingBoard players={rankingPlayers} />
-            </div>
+            {showRank && (
+                <div className="absolute top-4 right-4">
+                    <RankingBoard players={rankingPlayers} />
+                </div>
+            )}
+            
             
         </div>
     )
