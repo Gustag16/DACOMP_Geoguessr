@@ -29,7 +29,9 @@ DEBUG = True
 ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
-    '0.0.0.0'
+    '0.0.0.0',
+    'consequences-achieved-atlas-notre.trycloudflare.com',
+    '.trycloudfare.com',
 ]
 
 MEDIA_URL = '/media/'
@@ -172,7 +174,8 @@ CSRF_TRUSTED_ORIGINS = [
     'http://*.localhost:8000',
     'http://*.127.0.0.1:5173',
     'http://*.127.0.0.1:8000',
-    'http://0.0.0.0:8000'
+    'http://0.0.0.0:8000',
+    'https://consequences-achieved-atlas-notre.trycloudflare.com'
 
 ]
 
@@ -190,7 +193,8 @@ CORS_ALLOWED_ORIGINS = [
     'http://*.localhost:8000',
     'http://*.127.0.0.1:5173',
     'http://*.127.0.0.1:8000',
-    'http://0.0.0.0:8000'
+    'http://0.0.0.0:8000',
+    'https://consequences-achieved-atlas-notre.trycloudflare.com'
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -201,3 +205,6 @@ CORS_ALLOW_HEADERS = [
     'x-csrftoken',
     "User-Agent",
 ]
+
+USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
