@@ -91,7 +91,7 @@ export default function HostPage() {
             <button className="flex justify-center items-center bg-green-500 hover:bg-green-600
                              text-white font-bold py-2 px-4 rounded"
                     onClick={() => handleStartRoundsLogic(selectedSessionId)}>
-                        Start Roud
+                        Start Round
             </button>
             
             

@@ -15,7 +15,7 @@ function App() {
     <Routes>
       <Route path="/lobby/:code" element={<Lobby />} />
       <Route path="/game/:code" element={<GameSession />} />
-      <Route path="/results" element={<ResultsPage />} />
+      <Route path="/results/:code" element={<ResultsPage />} />
       <Route path="/host" element={<HostPage />} />
       <Route path="/" element={<HomePage />} />
       <Route path="/add-location" element={<AddLocation />} />

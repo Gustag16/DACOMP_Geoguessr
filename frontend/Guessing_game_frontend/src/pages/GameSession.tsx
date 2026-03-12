@@ -8,7 +8,7 @@ import 'leaflet/dist/leaflet.css';
 import Timer from "../components/gameSession/Timer";
 import GuessButton from "../components/gameSession/GuessButton";
 import Score from "../components/gameSession/Score";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useCallback, useState, useEffect } from "react";
 import { useSessionSocket } from "../api/ws";
 import type { LatLngExpression } from "leaflet";
@@ -18,10 +18,12 @@ import { fetchRoundUrl } from "../api/GameSession/GameSessionServices";
 import type { Player } from '../utils/interfaces/playerInterface'
 import { LatLng } from "leaflet";
 import RankingBoard from "../components/gameSession/RankingBoard";
+import CurrentRound from "../components/gameSession/CurrentRound";
 
 export default function GameSession() {
     const { code } = useParams();
-    const [session, setSession] = useState<Session | null>(null)
+    const navigate = useNavigate();
+    const [session, setSession] = useState<Session | null>(null);
     const [currentRoundNumber, setCurrentRoundNumber] = useState<number>(0);
     // estado para guardar a imagem da rodada atual
     const [currentImageUrl, setCurrentImageUrl] = useState<string>("");
@@ -48,14 +50,20 @@ export default function GameSession() {
     const handleWebSocketMessage = useCallback((data: any) => {
         // se a rodada começou
         if (data.type === 'session_status_update') {
-            // puxa a url que veio do PostgreSQL (por backend)
-            setCurrentImageUrl(data.location.image_url);
-            console.log("URL da imagem:", currentImageUrl);
 
-            setGuessPosition(null);
-            setAlreadyGuessed(false);
-            setCorrectPosition(null);;
-            setIsRoundActive(false);
+            // primeiro verifica se o jogo acabou
+            if (data.status === 'FINISHED') {
+                navigate(`/results/${code}`, { state: { rankingFinal: data.players } });
+            } 
+            else if (data.location) {
+                // puxa a url que veio do PostgreSQL (por backend)
+                setCurrentImageUrl(data.location.image_url);
+                console.log("URL da imagem:", data.location.image_url);
+                setGuessPosition(null);
+                setAlreadyGuessed(false);
+                setCorrectPosition(null);
+                setIsRoundActive(false);
+            }
          }
 
         else if(data.type === 'round_start') {
@@ -77,7 +85,7 @@ export default function GameSession() {
             // salva a lista inteira de jogadores que veio do gamelogic.py
             setRankingPlayers(data.players);
         }
-    }, [playerId]);
+    }, [playerId, navigate]);
 
     // extrai o sendGuess do hook
     const {sendGuess, reconnect} = useSessionSocket(code!, handleWebSocketMessage);
@@ -104,20 +112,20 @@ export default function GameSession() {
     }, [code, currentRoundNumber]);
 
     useEffect(() => {
-    // Verifica se já tentou reconectar antes para evitar loops
-    const hasReconnected = sessionStorage.getItem('has_reconnected');
-    
-    if (playerId && !hasReconnected) {
-        // Marca que já tentou reconectar
-        sessionStorage.setItem('has_reconnected', 'true');
-        reconnect(playerId);
-    }
-    
-    // Limpeza quando o componente desmontar
-    return () => {
-        sessionStorage.removeItem('has_reconnected');
-    };
-}, [playerId]); 
+        // Verifica se já tentou reconectar antes para evitar loops
+        const hasReconnected = sessionStorage.getItem('has_reconnected');
+        
+        if (playerId && !hasReconnected) {
+            // Marca que já tentou reconectar
+            sessionStorage.setItem('has_reconnected', 'true');
+            reconnect(playerId);
+        }
+        
+        // Limpeza quando o componente desmontar
+        return () => {
+            sessionStorage.removeItem('has_reconnected');
+        };
+    }, [playerId]); 
 
 
     // função chamada quando o player clica no botão de guess
@@ -147,6 +155,7 @@ export default function GameSession() {
                 <div className="flex gap-8 pointer-events-auto">
                     <Timer key={currentRoundNumber} initialSeconds={time} isActive={isRoundActive} />
                     <Score score={player?.score || 0} />
+                    <CurrentRound currentRoundNumber={currentRoundNumber} />
                 </div>
 
                 <div className="pointer-events-auto mt-150">
