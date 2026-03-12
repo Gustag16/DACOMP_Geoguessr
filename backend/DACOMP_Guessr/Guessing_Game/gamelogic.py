@@ -15,6 +15,9 @@ def run_game_loop(session_id, channel_layer, session_group):
     # Garantir que o número do round comece do 1
     session.current_round_number = 1
     session.save()
+
+    # zera os pontos de todo mundo antes do jogo iniciar
+    Player.objects.filter(session=session).update(score=0, last_round_score=0)
     
     while session.current_round_number < (session.total_rounds + 1):
         session.refresh_from_db()
@@ -35,6 +38,9 @@ def run_game_loop(session_id, channel_layer, session_group):
         session.round_started_at = timezone.now()
         session.save(update_fields=["round_started_at"])
 
+        # zera os pontos da ultima rodada de todo mundo
+        Player.objects.filter(session=session).update(last_round_score=0)
+
         # Aguarda o tempo do round
         while (current_time !=0):
             time.sleep(1)
@@ -46,7 +52,8 @@ def run_game_loop(session_id, channel_layer, session_group):
             "id": str(p.id),
             "nickname": p.nickname,
             "score": p.score,
-            "last_round_score": p.last_round_score
+            "last_round_score": p.last_round_score,
+            "avatar_config": p.avatar_config
         }
         for p in players
         ]
@@ -87,13 +94,26 @@ def run_game_loop(session_id, channel_layer, session_group):
         # Pequena pausa entre rounds
         time.sleep(4)
     
-    # Jogo finalizado
+
+    # prepara o ranking final definitivo para a tela de pódio
+    final_players = Player.objects.filter(session=session).order_by("-score")
+    final_players_data = [
+        {
+            "id": str(p.id),
+            "nickname": p.nickname,
+            "score": p.score,
+            "avatar_config": p.avatar_config
+        }
+        for p in final_players
+    ]
+
     async_to_sync(channel_layer.group_send)(
         session_group,
         {
             "type": "session_status_update",
             "status": "FINISHED",
-            "message": "Jogo finalizado!"
+            "message": "Jogo finalizado!",
+            "players": final_players_data  # envia pro front o vencedor
         }
     )
     

@@ -16,6 +16,10 @@ interface MapProps {
 function LocationMarker({ position, setPosition, alreadyGuessed }: 
   {position: LatLngExpression | null, setPosition: (pos: LatLngExpression) => void, alreadyGuessed: boolean}) {
 
+  const purpleIcon = new L.Icon.Default({
+    className: 'hue-rotate-[45deg] brightness-100 saturate-[300%]' 
+  });
+
   useMapEvents({
     click(e) {
       if (!alreadyGuessed)
@@ -26,7 +30,7 @@ function LocationMarker({ position, setPosition, alreadyGuessed }:
   });
 
   return position === null ? null : (
-    <Marker position={position}>
+    <Marker position={position} icon={purpleIcon}>
       <Popup>
         Your Guess:<br/>{position.toString()}
       </Popup>
@@ -73,7 +77,7 @@ const MapComponent = ({position, setPosition, correctPosition, alreadyGuessed}: 
         {/*desenha o marker da resposta correta quando a rodada acaba*/}
         {correctPosition && (
           <Marker position={correctPosition} icon={greenIcon}>
-            <Popup>Resposta Correta!</Popup>
+            <Popup>Resposta Correta:<br/>{correctPosition.toString()}</Popup>
           </Marker>
         )}
 

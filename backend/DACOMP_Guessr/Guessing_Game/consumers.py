@@ -362,7 +362,8 @@ class PlayerConsumer(WebsocketConsumer):
         self.send(text_data=json.dumps({
             'type': 'session_status_update',
             'status': event['status'],
-            'message': event['message']
+            'message': event['message'],
+            'players': event.get('players', [])
         }))
 
         import time
