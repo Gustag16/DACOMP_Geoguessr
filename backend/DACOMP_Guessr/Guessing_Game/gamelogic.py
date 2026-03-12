@@ -59,8 +59,8 @@ def run_game_loop(session_id, channel_layer, session_group):
                 "longitude_guess": g.longitude_guess,
                 "distance_in_meters": g.distance_in_meters,
                 "points_awarded": g.points_awarded,
-                "timestamp": g.timestamp,
-                "player_id":g.player_id,
+                "timestamp": g.timestamp.isoformat(),
+                "player_id":str(g.player_id),
                 "round_id": g.round_id,
                 "session_id": g.session_id
             }

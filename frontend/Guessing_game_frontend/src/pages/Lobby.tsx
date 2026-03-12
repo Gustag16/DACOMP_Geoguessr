@@ -19,6 +19,7 @@ interface WebSocketMessage {
     player?: any;
     status?: string;
     new?: boolean;
+    nickname?: string;
 }
 
 export default function Lobby() {
@@ -96,7 +97,7 @@ export default function Lobby() {
             setPlayerId(data.id!);
             localStorage.setItem('playerId', data.id!);
             }
-
+            setOwnName(data.nickname!)
             setAvatarConfig({
                 head: data.avatar_config!.head,
                 face: data.avatar_config!.face,

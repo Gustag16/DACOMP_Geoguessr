@@ -9,7 +9,7 @@ import Timer from "../components/gameSession/Timer";
 import GuessButton from "../components/gameSession/GuessButton";
 import Score from "../components/gameSession/Score";
 import { useParams } from "react-router-dom";
-import { useCallback, useState, useEffect, useRef } from "react";
+import { useCallback, useState, useEffect} from "react";
 import { useSessionSocket } from "../api/ws";
 import type { LatLngExpression } from "leaflet";
 import { fetchSession } from "../api/Lobby/LobbyServices";
@@ -70,7 +70,7 @@ export default function GameSession() {
     }, [playerId, currentImageUrl]);
 
     // extrai o sendGuess do hook
-    const {sendGuess, reconnect} = useSessionSocket(code!, handleWebSocketMessage);
+    const {sendGuess} = useSessionSocket(code!, handleWebSocketMessage);
 
     useEffect(() => {
         if (code) {
@@ -91,29 +91,6 @@ export default function GameSession() {
                 });
         }
     }, [code, currentRoundNumber]);
-
-
-const reconnectAttempts = useRef(
-    Number(sessionStorage.getItem("has_reconnected") || 0)
-);
-
-useEffect(() => {
-    if (!playerId) return;
-
-    if (reconnectAttempts.current >= 50) {
-        console.log("Limite de reconexões atingido");
-        return;
-    }
-
-    reconnectAttempts.current += 1;
-    sessionStorage.setItem(
-        "has_reconnected",
-        String(reconnectAttempts.current)
-    );
-
-    reconnect(playerId);
-
-}, [playerId, reconnect]);
 
 
     // função chamada quando o player clica no botão de guess

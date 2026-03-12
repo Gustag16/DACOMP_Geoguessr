@@ -175,7 +175,8 @@ class PlayerConsumer(WebsocketConsumer):
             'id': str(player.id),
             'avatar_config': player.avatar_config,
             'message': f'Bem-vindo, {player.nickname}!',
-            'new': new
+            'new': new,
+            'nickname': player.nickname,
         }))
 
         self.notify_players_update()
