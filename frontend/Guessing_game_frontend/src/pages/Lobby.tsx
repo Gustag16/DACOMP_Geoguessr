@@ -230,7 +230,7 @@ export default function Lobby() {
             <div className="flex flex-row gap-4 justify-center">
                 <button 
                 className="group relative mb-10 px-4 py-2 text-white text-1xl font-normal font-['Silkscreen'] hover:cursor-pointer"
-                onClick={() => updateAvatar(playerId!, avatarConfig)}
+                onClick={() => updateAvatar(playerId!, avatarConfig, ownName)}
                 >
                     <span className="absolute inset-0 z-0 bg-fuchsia-600 rounded-lg opacity-0 
                     transition-opacity duration-200 group-hover:opacity-20"></span>

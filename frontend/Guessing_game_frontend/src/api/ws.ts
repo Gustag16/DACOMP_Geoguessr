@@ -58,12 +58,13 @@ export function useSessionSocket(sessionCode: string, onMessage?: (data: any) =>
     sendMessage(JSON.stringify({ action: 'list_players' }));
   }
 
-  function updateAvatar(playerId: string, avatarConfig: PlayerAvatarProps) {
+  function updateAvatar(playerId: string, avatarConfig: PlayerAvatarProps, nickname: string) {
     sendMessage(JSON.stringify({
       action: 'update_avatar',
       player: {
         id: playerId,
-        avatar_config: avatarConfig
+        avatar_config: avatarConfig,
+        nickname: nickname
       }
     }));
   } 
