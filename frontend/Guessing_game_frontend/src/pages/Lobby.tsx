@@ -82,7 +82,6 @@ export default function Lobby() {
         return localStorage.getItem('playerId');
     });
     const [hasJoined, setHasJoined] = useState(false);
-    const [localStorageLoaded, setLocalStorageLoaded] = useState(false);
     const [session, setSession] = useState<Session | null>(null)
     const [playerQtd, setPlayerQtd] = useState(0);
     const navigate = useNavigate();
@@ -182,7 +181,7 @@ export default function Lobby() {
             }
             updateHasJoined();
         }
-    }, [isConnected, hasJoined,  join, localStorageLoaded, ownName, avatarConfig, playerId]);
+    }, [isConnected, hasJoined,  join, ownName, avatarConfig, playerId]);
 
     useEffect(() => {
         if (code) {
@@ -197,7 +196,7 @@ export default function Lobby() {
                     console.error("Error fetching session data:", error);
                 });
         }
-    }, [code]);
+    }, [code, setSession]);
 
     useEffect(() => {
         if (session?.status === "PLAYING") {

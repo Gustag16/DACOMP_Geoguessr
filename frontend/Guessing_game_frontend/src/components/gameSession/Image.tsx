@@ -2,9 +2,14 @@
 interface ImageProps {
     imageUrl: string;
 }
+const dev = import.meta.env.DEV
+const baseUrl = window.location.origin;
+
 
 export default function Image({imageUrl}: ImageProps) {
-  const VITE_imageUrl = import.meta.env.VITE_BACKEND_URL + imageUrl;
+    const VITE_imageUrl = dev 
+        ? (import.meta.env.VITE_BACKEND_URL + imageUrl) 
+        : `${baseUrl}${imageUrl}`;
   return (
     <div className="flex justify-center items-center">
         { imageUrl ? (

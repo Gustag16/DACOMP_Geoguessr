@@ -9,10 +9,9 @@ import Timer from "../components/gameSession/Timer";
 import GuessButton from "../components/gameSession/GuessButton";
 import Score from "../components/gameSession/Score";
 import { useParams } from "react-router-dom";
-import { useCallback, useState, useEffect } from "react";
+import { useCallback, useState, useEffect, useRef } from "react";
 import { useSessionSocket } from "../api/ws";
 import type { LatLngExpression } from "leaflet";
-import type { Session } from '../utils/interfaces/sessionInterface'
 import { fetchSession } from "../api/Lobby/LobbyServices";
 import { fetchRoundUrl } from "../api/GameSession/GameSessionServices";
 import type { Player } from '../utils/interfaces/playerInterface'
@@ -20,7 +19,6 @@ import { LatLng } from "leaflet";
 
 export default function GameSession() {
     const { code } = useParams();
-    const [session, setSession] = useState<Session | null>(null)
     const [currentRoundNumber, setCurrentRoundNumber] = useState<number>(0);
     // estado para guardar a imagem da rodada atual
     const [currentImageUrl, setCurrentImageUrl] = useState<string>("");
@@ -34,10 +32,7 @@ export default function GameSession() {
     const [isRoundActive, setIsRoundActive] = useState<boolean>(false);
     // estado para saber a pontuação do jogador nesta sessão
     const [player, setPlayer] = useState<Player | null> (null)
-    const [playerId, setPlayerId] = useState<string | null>(() => {
-        // Inicializa com o localStorage
-        return localStorage.getItem('playerId');
-    });
+    const playerId = localStorage.getItem('playerId');
     const [time, setTime] = useState<number>(0);
 
 
@@ -81,7 +76,6 @@ export default function GameSession() {
         if (code) {
             fetchSession(code)
                 .then((sessionData) => {
-                    setSession(sessionData)
                     setTime(sessionData.time_limit);
                     setCurrentRoundNumber(sessionData.current_round_number);
                     console.log("Dados da sessão:", sessionData);
@@ -98,21 +92,28 @@ export default function GameSession() {
         }
     }, [code, currentRoundNumber]);
 
-    useEffect(() => {
-    // Verifica se já tentou reconectar antes para evitar loops
-    const hasReconnected = sessionStorage.getItem('has_reconnected');
-    
-    if (playerId && !hasReconnected) {
-        // Marca que já tentou reconectar
-        sessionStorage.setItem('has_reconnected', 'true');
-        reconnect(playerId);
+
+const reconnectAttempts = useRef(
+    Number(sessionStorage.getItem("has_reconnected") || 0)
+);
+
+useEffect(() => {
+    if (!playerId) return;
+
+    if (reconnectAttempts.current >= 50) {
+        console.log("Limite de reconexões atingido");
+        return;
     }
-    
-    // Limpeza quando o componente desmontar
-    return () => {
-        sessionStorage.removeItem('has_reconnected');
-    };
-}, [playerId]); 
+
+    reconnectAttempts.current += 1;
+    sessionStorage.setItem(
+        "has_reconnected",
+        String(reconnectAttempts.current)
+    );
+
+    reconnect(playerId);
+
+}, [playerId, reconnect]);
 
 
     // função chamada quando o player clica no botão de guess
