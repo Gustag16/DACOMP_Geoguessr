@@ -4,9 +4,9 @@
 // players só precisam colocar o id da sala pra entrar, e o resto o websocket resolve
 // Verificação de ambiente
 import axios from 'axios'
-
+const dev = import.meta.env.DEV
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: dev ? import.meta.env.VITE_API_URL : '/api',
   withCredentials: true,
   xsrfCookieName: 'csrf_token',
   xsrfHeaderName: 'X-CSRFToken',

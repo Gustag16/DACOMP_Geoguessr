@@ -4,7 +4,7 @@ import threading
 from channels.generic.websocket import WebsocketConsumer
 from channels.layers import get_channel_layer
 from django.utils import timezone
-from .models import Session, Player, Round, Location
+from .models import Session, Player, Round, Location, Guess
 import math
 
 
@@ -137,6 +137,7 @@ class PlayerConsumer(WebsocketConsumer):
         nickname = player_data['nickname']
         id = player_data.get('id') 
         avatar_config = player_data['avatar_config']
+        new = False
 
         existing_player = None
         if id:
@@ -163,6 +164,7 @@ class PlayerConsumer(WebsocketConsumer):
                 },
                 is_connected=True
             )
+            new = True
 
         self.id = player.id
         self.player = player
@@ -172,7 +174,8 @@ class PlayerConsumer(WebsocketConsumer):
             'type': 'join_success',
             'id': str(player.id),
             'avatar_config': player.avatar_config,
-            'message': f'Bem-vindo, {player.nickname}!'
+            'message': f'Bem-vindo, {player.nickname}!',
+            'new': new
         }))
 
         self.notify_players_update()
@@ -269,7 +272,8 @@ class PlayerConsumer(WebsocketConsumer):
             "round_number": event["round_number"],
             "correct_lon": event["correct_lon"],
             "correct_lat": event["correct_lat"],
-            "players": event["players"]
+            "players": event["players"],
+            "guesses": event["guesses"]
         }))
 
     def handle_list_players(self):
@@ -290,7 +294,7 @@ class PlayerConsumer(WebsocketConsumer):
     def delete_player_on_delayed_disconnection(self, player_id):
         # Espera um tempo para garantir que a desconexão foi intencional
         import time
-        time.sleep(30) 
+        time.sleep(90) 
         try:
             player = Player.objects.get(id=player_id)
             if not player.is_connected:
@@ -458,8 +462,21 @@ class PlayerConsumer(WebsocketConsumer):
         print(f"last_round_score: {self.player.last_round_score}")
         
         # Busca o player novamente do banco para confirmar
+        # id, latitude_guess, longitude_guess, distance_in_meters,
+        # points_awarded, timestamp, player_id, round-id
         player_verification = Player.objects.get(id=self.player.id)
         print(f"VERIFICAÇÃO - Score no banco: {player_verification.score}")
+
+        Guess.objects.create(
+            latitude_guess =guess_lat,
+            longitude_guess = guess_lon,
+            distance_in_meters = distance,
+            points_awarded = score,
+            timestamp = guess_time,
+            player_id = self.player.id,
+            round_id = round_obj.id,
+            session_id = self.session.id
+        )
         
         self.send(text_data=json.dumps({
             'type': 'guess_received',

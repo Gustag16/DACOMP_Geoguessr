@@ -1,7 +1,4 @@
-import React, { type ReactNode } from 'react'
-import type { PlayerAvatarProps } from './PlayerAvatar'
-
-
+import type { ReactNode } from "react";
 interface PlayerEditProps {
   ownName: string;
   children: ReactNode;

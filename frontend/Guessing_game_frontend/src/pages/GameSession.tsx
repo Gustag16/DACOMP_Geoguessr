@@ -10,9 +10,10 @@ import GuessButton from "../components/gameSession/GuessButton";
 import Score from "../components/gameSession/Score";
 import { useNavigate, useParams } from "react-router-dom";
 import { useCallback, useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
+import { useCallback, useState, useEffect, useRef } from "react";
 import { useSessionSocket } from "../api/ws";
 import type { LatLngExpression } from "leaflet";
-import type { Session } from '../utils/interfaces/sessionInterface'
 import { fetchSession } from "../api/Lobby/LobbyServices";
 import { fetchRoundUrl } from "../api/GameSession/GameSessionServices";
 import type { Player } from '../utils/interfaces/playerInterface'
@@ -23,7 +24,6 @@ import CurrentRound from "../components/gameSession/CurrentRound";
 export default function GameSession() {
     const { code } = useParams();
     const navigate = useNavigate();
-    const [session, setSession] = useState<Session | null>(null);
     const [currentRoundNumber, setCurrentRoundNumber] = useState<number>(0);
     // estado para guardar a imagem da rodada atual
     const [currentImageUrl, setCurrentImageUrl] = useState<string>("");
@@ -37,10 +37,7 @@ export default function GameSession() {
     const [isRoundActive, setIsRoundActive] = useState<boolean>(false);
     // estado para saber a pontuação do jogador nesta sessão
     const [player, setPlayer] = useState<Player | null> (null)
-    const [playerId, setPlayerId] = useState<string | null>(() => {
-        // Inicializa com o localStorage
-        return localStorage.getItem('playerId');
-    });
+    const playerId = localStorage.getItem('playerId');
     const [time, setTime] = useState<number>(0);
     // estado para o ranking
     const [rankingPlayers, setRankingPlayers] = useState<any[]>([]);
@@ -85,8 +82,7 @@ export default function GameSession() {
             // salva a lista inteira de jogadores que veio do gamelogic.py
             setRankingPlayers(data.players);
         }
-    }, [playerId, navigate]);
-
+    }, [playerId, navigate, currentImageUrl]);
     // extrai o sendGuess do hook
     const {sendGuess, reconnect} = useSessionSocket(code!, handleWebSocketMessage);
 
@@ -94,7 +90,6 @@ export default function GameSession() {
         if (code) {
             fetchSession(code)
                 .then((sessionData) => {
-                    setSession(sessionData)
                     setTime(sessionData.time_limit);
                     setCurrentRoundNumber(sessionData.current_round_number);
                     console.log("Dados da sessão:", sessionData);
@@ -158,7 +153,7 @@ export default function GameSession() {
                     <CurrentRound currentRoundNumber={currentRoundNumber} />
                 </div>
 
-                <div className="pointer-events-auto mt-150">
+                <div className="pointer-events-auto fixed bottom-10 left-0 right-0 flex justify-center ">
                     {!alreadyGuessed ? (
                         <GuessButton 
                             onGuess={handleConfirmGuess}

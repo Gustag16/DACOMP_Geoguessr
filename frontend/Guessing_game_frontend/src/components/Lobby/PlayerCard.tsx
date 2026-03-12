@@ -1,5 +1,4 @@
-import React, { type ReactNode } from 'react'
-
+import type { ReactNode } from "react";
 interface PlayerCardProps {
     name: string;
     children: ReactNode; // aceita qualquer elemento React como filho

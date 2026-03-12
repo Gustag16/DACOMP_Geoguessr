@@ -2,9 +2,15 @@ import useWebSocket, { ReadyState } from 'react-use-websocket';
 import type { PlayerAvatarProps } from '../components/Lobby/PlayerAvatar';
 
 const VITE_WS_URL = import.meta.env.VITE_WS_URL;
+const dev = import.meta.env.DEV
+
+const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+const host = window.location.host;
 
 export function useSessionSocket(sessionCode: string, onMessage?: (data: any) => void) {
-  const socketUrl = `${VITE_WS_URL}/lobby/${sessionCode}/`;
+  const socketUrl = dev 
+    ? `${VITE_WS_URL}/lobby/${sessionCode}/` 
+    : `${protocol}${host}/ws/lobby/${sessionCode}/`;
   const { sendMessage, readyState } = useWebSocket(socketUrl, {
     onOpen: () => console.log('ws open'),
     onClose: () => console.log('ws closed'),
