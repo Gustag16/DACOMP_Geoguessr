@@ -310,10 +310,12 @@ class PlayerConsumer(WebsocketConsumer):
         player_data = data['player']
         player_id = player_data.get('id')
         avatar_config = player_data['avatar_config']
+        player_nickname = player_data.get('nickname')
         
         try:
             player = Player.objects.get(id=player_id, session=self.session)
             player.avatar_config = avatar_config
+            player.nickname = player_nickname
             player.save()
             
             # Notifica todos os jogadores sobre a atualização
