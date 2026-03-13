@@ -2,7 +2,7 @@
 // Default com caixa pra colocar o código da sala
 
 import { useState } from "react"
-import { Navigate, useNavigate } from "react-router-dom"
+import { useNavigate } from "react-router-dom"
 
 export default function HomePage() {
     const [roomCode, setRoomCode] = useState('')
