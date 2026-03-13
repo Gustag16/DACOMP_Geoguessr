@@ -85,6 +85,11 @@ export default function GameSession() {
             setShowRank(true)
             setGuesses(data.guesses)
         }
+
+        else if (data.type === 'time_update'){
+            setTime(data.round_time)
+        }
+        
     }, [playerId, navigate, code]);
     // extrai o sendGuess do hook
     const {sendGuess} = useSessionSocket(code!, handleWebSocketMessage);

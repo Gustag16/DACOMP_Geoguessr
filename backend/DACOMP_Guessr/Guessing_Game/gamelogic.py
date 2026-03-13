@@ -42,10 +42,17 @@ def run_game_loop(session_id, channel_layer, session_group):
         Player.objects.filter(session=session).update(last_round_score=0)
 
         # Aguarda o tempo do round
-        while (current_time !=0):
+        while (current_time !=-1):
             time.sleep(1)
             current_time -=1
-
+            async_to_sync(channel_layer.group_send)(
+            session_group,
+                {
+                    "type": "time_update",
+                    "round_time": current_time,
+                }
+            )
+            
         players = Player.objects.filter(session=session).order_by("-score")
         players_data = [
         {

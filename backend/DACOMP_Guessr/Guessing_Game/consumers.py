@@ -265,6 +265,12 @@ class PlayerConsumer(WebsocketConsumer):
             "type": "round_start",
             "message": event["message"]
         }))
+
+    def time_update(self, event):
+        self.send(text_data=json.dumps({
+            "type": "time_update",
+            "round_time": event["message"]
+        }))
         
     def round_timeout(self, event):
         self.send(text_data=json.dumps({

@@ -30,7 +30,7 @@ ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
     '0.0.0.0',
-    'encourage-assuming-mating-cope.trycloudflare.com',
+    'forming-comes-trace-settlement.trycloudflare.com',
     '.trycloudfare.com',
 ]
 
