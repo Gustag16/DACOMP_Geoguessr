@@ -269,7 +269,7 @@ class PlayerConsumer(WebsocketConsumer):
     def time_update(self, event):
         self.send(text_data=json.dumps({
             "type": "time_update",
-            "round_time": event["message"]
+            "round_time": event["round_time"]
         }))
         
     def round_timeout(self, event):

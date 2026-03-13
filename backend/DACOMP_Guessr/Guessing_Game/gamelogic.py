@@ -99,7 +99,7 @@ def run_game_loop(session_id, channel_layer, session_group):
         session.save()
         
         # Pequena pausa entre rounds
-        time.sleep(4)
+        time.sleep(5)
     
 
     # prepara o ranking final definitivo para a tela de pódio
