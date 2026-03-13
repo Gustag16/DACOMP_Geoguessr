@@ -12,6 +12,8 @@ sudo rm /etc/nginx/sites-available/default
 sudo nginx -t
 ```
 
+Dentro da pasta de deploy desse repositório
+
 ```
 cd nginx
 sudo cp nginx.conf /etc/nginx/nginx.conf
