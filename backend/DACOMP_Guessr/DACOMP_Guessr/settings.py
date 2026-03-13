@@ -30,8 +30,7 @@ ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
     '0.0.0.0',
-    'forming-comes-trace-settlement.trycloudflare.com',
-    '.trycloudfare.com',
+    'tries-catalyst-peterson-graphs.trycloudflare.com'
 ]
 
 MEDIA_URL = '/media/'
