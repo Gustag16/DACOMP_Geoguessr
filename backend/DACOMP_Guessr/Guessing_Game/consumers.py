@@ -495,5 +495,3 @@ class PlayerConsumer(WebsocketConsumer):
         }))
         
         print("=== FIM PROCESSAMENTO ===\n")
-
-
