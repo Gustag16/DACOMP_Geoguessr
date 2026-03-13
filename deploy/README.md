@@ -18,6 +18,9 @@ sudo cp nginx.conf /etc/nginx/nginx.conf
 sudo mkdir /etc/nginx/conf.d
 sudo mkdir -p /var/www/dacomp_guessr
 sudo cp simple_website.conf  /etc/nginx/conf.d/simple_website.conf
+
+sudo -R chmod 755 /var/www
+sudo chmod 755 /var/www/dacomp_guessr
 ```
 sudo nginx -s reload
 
