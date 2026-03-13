@@ -171,17 +171,47 @@ export default function Lobby() {
     );
     const { join, isConnected, updateAvatar } = useSessionSocket(code!, handleWebSocketMessage); 
 
+   
+    const filterOwnerName = (name: string): string => {
+        if (!name) return '';
 
+        // 1. Remove qualquer coisa que pareça uma tag HTML (ex: <script>, <b>, etc)
+        // Busca um '<', seguido de qualquer coisa que não seja '>', e fecha com '>'
+        let sanitized = name.replace(/<[^>]*>/g, '');
+
+        // 2. Remove aspas simples ('), aspas duplas ("), crases (`) e ponto e vírgula (;)
+        sanitized = sanitized.replace(/['"`;]/g, '');
+
+        // 3. Remove espaços duplos ou múltiplos que possam ter sobrado
+        sanitized = sanitized.replace(/\s+/g, ' ');
+
+        // 4. Remove espaços no início/fim e limita o tamanho a 50 caracteres
+        const finalName = sanitized.trim().slice(0, 50); 
+        if(finalName ==="") return "engraçadinho"
+        else return finalName;
+    };
+
+    const handleUpdate = async (id:string, config:PlayerAvatarProps,name:string, ) =>{
+        const newName = filterOwnerName(name)
+        await updateAvatar(id,config,newName);    
+    }
     useEffect(() => {
-        
+        try{
         if (isConnected && !hasJoined) {
+            const newName = filterOwnerName(ownName);
+
             // Primeiro, entra no lobby
-            join(ownName, avatarConfig, playerId);
+            join(newName, avatarConfig, playerId);
             async function updateHasJoined() {
                 await setHasJoined(true);
             }
             updateHasJoined();
         }
+    }
+    catch(error){
+        console.error(error)
+        
+    }
     }, [isConnected, hasJoined,  join, ownName, avatarConfig, playerId]);
 
     useEffect(() => {
@@ -230,7 +260,7 @@ export default function Lobby() {
             <div className="flex flex-row gap-4 justify-center">
                 <button 
                 className="group relative mb-10 px-4 py-2 text-white text-1xl font-normal font-['Silkscreen'] hover:cursor-pointer"
-                onClick={() => updateAvatar(playerId!, avatarConfig, ownName)}
+                onClick={()=>handleUpdate(playerId!,avatarConfig,ownName)}
                 >
                     <span className="absolute inset-0 z-0 bg-fuchsia-600 rounded-lg opacity-0 
                     transition-opacity duration-200 group-hover:opacity-20"></span>

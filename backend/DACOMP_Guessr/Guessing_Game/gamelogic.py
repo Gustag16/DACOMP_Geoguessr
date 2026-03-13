@@ -35,6 +35,7 @@ def run_game_loop(session_id, channel_layer, session_group):
         session=session,
         round_number=session.current_round_number
         )
+        time.sleep(2)
         session.round_started_at = timezone.now()
         session.save(update_fields=["round_started_at"])
 
@@ -99,8 +100,8 @@ def run_game_loop(session_id, channel_layer, session_group):
         session.save()
         
         # Pequena pausa entre rounds
-        time.sleep(5)
-    
+        time.sleep(7)
+        
 
     # prepara o ranking final definitivo para a tela de pódio
     final_players = Player.objects.filter(session=session).order_by("-score")
@@ -127,3 +128,15 @@ def run_game_loop(session_id, channel_layer, session_group):
     # Atualiza status da sessão
     session.status = Session.Status.FINISHED
     session.save()
+
+    Guess.objects.filter(session=session).delete()
+    players_data = [
+        {
+            "id": str(p.id),
+            "nickname": p.nickname,
+            "score": 0,
+            "last_round_score": 0,
+            "avatar_config": p.avatar_config
+        }
+        for p in players
+    ]
