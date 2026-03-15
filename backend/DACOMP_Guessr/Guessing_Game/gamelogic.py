@@ -30,6 +30,7 @@ def run_game_loop(session_id, channel_layer, session_group):
                 "message": f"Round {session.current_round_number} começou!"
             }
         )
+        time.sleep(1)
         current_time = session.time_limit
         round_obj = Round.objects.select_related("location").get(
         session=session,
@@ -99,7 +100,7 @@ def run_game_loop(session_id, channel_layer, session_group):
         session.save()
         
         # Pequena pausa entre rounds
-        time.sleep(5)
+        time.sleep(7)
     
 
     # prepara o ranking final definitivo para a tela de pódio
@@ -127,3 +128,10 @@ def run_game_loop(session_id, channel_layer, session_group):
     # Atualiza status da sessão
     session.status = Session.Status.FINISHED
     session.save()
+
+    Guess.objects.filter(session=session).delete()
+
+    Player.objects.filter(session=session).update(last_round_score=0)
+    Player.objects.filter(session=session).update(score=0)
+    session.current_round_number = 0
+    session.status = "LOBBY"

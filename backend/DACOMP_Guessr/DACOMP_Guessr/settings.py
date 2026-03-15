@@ -30,7 +30,7 @@ ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
     '0.0.0.0',
-    'tries-catalyst-peterson-graphs.trycloudflare.com'
+    'terrace-transparency-electric-iso.trycloudflare.com',
 ]
 
 MEDIA_URL = '/media/'
