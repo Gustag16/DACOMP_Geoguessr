@@ -263,13 +263,8 @@ class PlayerConsumer(WebsocketConsumer):
     def round_start(self, event):
         self.send(text_data=json.dumps({
             "type": "round_start",
-            "message": event["message"]
-        }))
-
-    def time_update(self, event):
-        self.send(text_data=json.dumps({
-            "type": "time_update",
-            "round_time": event["round_time"]
+            "message": event["message"],
+            "image_url": event.get("image_url")
         }))
         
     def round_timeout(self, event):
@@ -431,7 +426,7 @@ class PlayerConsumer(WebsocketConsumer):
         remaining_time = self.session.time_limit - elapsed
         print(f"Tempo restante: {remaining_time}s")
         
-        if remaining_time < 0:
+        if remaining_time < -3:
             print("ERRO: Tempo esgotado!")
             return
 

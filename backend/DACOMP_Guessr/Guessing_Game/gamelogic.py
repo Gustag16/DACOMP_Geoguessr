@@ -21,38 +21,30 @@ def run_game_loop(session_id, channel_layer, session_group):
     
     while session.current_round_number < (session.total_rounds + 1):
         session.refresh_from_db()
+
+        round_obj = Round.objects.select_related("location").get(
+            session=session,
+            round_number=session.current_round_number
+        )
+        session.round_started_at = timezone.now()
+        session.save(update_fields=["round_started_at"])
+
         # Início do round
         async_to_sync(channel_layer.group_send)(
             session_group,
             {
                 "type": "round_start",
                 "round_number": session.current_round_number,
-                "message": f"Round {session.current_round_number} começou!"
+                "message": f"Round {session.current_round_number} começou!",
+                "image_url": round_obj.location.image_url
             }
         )
-        time.sleep(1)
-        current_time = session.time_limit
-        round_obj = Round.objects.select_related("location").get(
-        session=session,
-        round_number=session.current_round_number
-        )
-        session.round_started_at = timezone.now()
-        session.save(update_fields=["round_started_at"])
 
         # zera os pontos da ultima rodada de todo mundo
         Player.objects.filter(session=session).update(last_round_score=0)
 
         # Aguarda o tempo do round
-        while (current_time !=-1):
-            time.sleep(1)
-            current_time -=1
-            async_to_sync(channel_layer.group_send)(
-            session_group,
-                {
-                    "type": "time_update",
-                    "round_time": current_time,
-                }
-            )
+        time.sleep(session.time_limit)
             
         players = Player.objects.filter(session=session).order_by("-score")
         players_data = [
