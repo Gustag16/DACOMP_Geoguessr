@@ -30,7 +30,7 @@ ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
     '0.0.0.0',
-    'terrace-transparency-electric-iso.trycloudflare.com',
+    'nearby-dare-hammer-leather.trycloudflare.com'
 ]
 
 MEDIA_URL = '/media/'
