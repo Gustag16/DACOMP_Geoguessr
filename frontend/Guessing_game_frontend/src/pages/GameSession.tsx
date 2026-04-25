@@ -69,11 +69,6 @@ export default function GameSession() {
             setCorrectPosition(null);
             setIsRoundActive(false);
             setCurrentRoundNumber((prev) => prev + 1);
-
-            if (data.image_url) {
-                setCurrentImageUrl(data.image_url);
-            }
-
             setIsRoundActive(true);
             setShowRank(false)
          }
@@ -90,13 +85,17 @@ export default function GameSession() {
             setShowRank(true)
             setGuesses(data.guesses)
         }
+
+        else if (data.type === 'time_update'){
+            setTime(data.round_time)
+        }
         
     }, [playerId, navigate, code]);
     // extrai o sendGuess do hook
     const {sendGuess} = useSessionSocket(code!, handleWebSocketMessage);
 
     useEffect(() => {
-        if (code && currentRoundNumber === 0) {
+        if (code) {
             fetchSession(code)
                 .then((sessionData) => {
                     setTime(sessionData.time_limit);
@@ -113,7 +112,7 @@ export default function GameSession() {
                     console.error("Error fetching session data:", error);
                 });
         }
-    }, [code]);
+    }, [code, currentRoundNumber]);
 
 
     // função chamada quando o player clica no botão de guess
