@@ -1,40 +1,33 @@
-Tech Stack
+# *Tech Stack*
 
  - Frontend
     React, Typescript, Tailwind
    
-    Paginas:
-   
-        - Host ("escondido" de todo mundo, e tem que ter alguma credencial)
+    Páginas:
+
+        - Host (Escondida dos outros players)
+        - Home
         - Lobby
-        - Round
-        - Pontuação
-        - Sessão não iniciada/não encontrada -> redirect
-   
-    Descobrir como integrar a API do Open Street Map.
-    Um esboço seria bom...
+          - Sessão não iniciada/encontrada -> redirect
+        - Game Session
+        - Ranking
 
 - Backend
-  
-    Python, Django (CHANNEL BOYS, Django Channels)
-    Websocket ( Django Channels)
 
-    Tem muita coisa desconfigurada ainda, mas os models tão prontos
-  
+    Python, Django (CHANNEL BOYS, Django Channels), Websocket (Django Channels)  
 
 - Banco de dados
+  
     PostgresSQL
-    Precisa adicionar sessões e rounds na seed.
 
- - API de mapa;
-    Open Street Map
-
-
-Pra rodar esse projeto, você vai precisar do npm pro frontend, e do docker pra
-rodar o backend + database
+ - API de mapa
+   
+    Open Street Map, Biblioteca Leaflet
 
 
-*Frontend*
+Pra rodar esse projeto, faz-se necessário o uso do npm pro frontend, e do docker para rodar o backend + database
+
+# *Frontend*
 
 Install Node and npm
 
@@ -60,32 +53,42 @@ Vá para a pasta do front end, `frontend/Guessing_game_frontend/`
 `npm run dev`
 
 
-*Backend e Banco de Dados*
+# *Backend e Banco de Dados*
 
 Instale o Docker, e então na pasta raiz:
 
 `docker compose up --build`
 
 Caso queira mudar a seed ou adicionar alguma na inicialização do backend, a imagem docker
-do postgres tem uma pasta chamada docker-entrypoint-initdb.d, que executa qualquer .sh que esteja nela.
+do postgres tem uma pasta chamada `docker-entrypoint-initdb.d`, que executa qualquer `.sh` que esteja nela.
 
-*========================================================*
 
 É Importante criar arquivos .env nas pastas indicadas para funcionar corretamente também.
 
-Para isso, copie os arquivos .env.exemple para um arquivo .env, e preencha os campos
+Para isso, copie os arquivos `.env.exemple` para um arquivo `.env`, e preencha os campos
 
 `cp .env.example .env`
 
 A Secret_KEY do Django deve ser obtida diretamente comigo
 
-**DEPLOY**
+# *Deploy*
 
-Para o deploy, a ideia inicial é:
+Para o deploy, a ideia é:
 
-  frontend: Vercel
+  - Frontend:
+    
+    Nginx expondo uma porta local
+    ```
+    cd frontend
+    cd Guessing_game_frontend
+    cd dist
+    sudo cp -rf ./* /var/www/dacomp_guessr/
+    sudo nginx -s reload
+    cloudflared tunnel --url http://localhost:80
+    ```
+  - Backend e BD:
+    
+    PC do Nginx com tunelamento do cloudfare
+
+    `docker compose up`
   
-  backend e bd: Algum pc com tunelamento do cloudfare
-  
-
-Importante verificar a viabilidade de usar uma cloud, como a magalu (contanto que seja gratuito k)
