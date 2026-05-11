@@ -30,7 +30,7 @@ ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
     '0.0.0.0',
-    'nearby-dare-hammer-leather.trycloudflare.com'
+    'fruit-hdtv-ellen-rarely.trycloudflare.com'
 ]
 
 MEDIA_URL = '/media/'

@@ -120,7 +120,7 @@ class PlayerConsumer(WebsocketConsumer):
         elif action == 'list_players':
             self.handle_list_players()
         elif action == 'start_round_manual':
-            self.start_round_manual()
+            pass
         elif action == 'submit_guess':
             print("*** PROCESSANDO GUESS ***")
             self.process_guess(data)
@@ -263,7 +263,9 @@ class PlayerConsumer(WebsocketConsumer):
     def round_start(self, event):
         self.send(text_data=json.dumps({
             "type": "round_start",
-            "message": event["message"]
+            "message": event["message"],
+            "round_number": event["round_number"],
+            "image_url": event.get("image_url"),      # encaminha ao front
         }))
 
     def time_update(self, event):
@@ -444,6 +446,10 @@ class PlayerConsumer(WebsocketConsumer):
             print(f"Localização real: {round_obj.location.latitude}, {round_obj.location.longitude}")
         except Round.DoesNotExist:
             print(f"ERRO: Rodada não encontrada para session {self.session.id}, round {self.session.current_round_number}")
+            return
+        # Impede que o jogador envie mais de 1 palpite e burle o fecho da rodada
+        if Guess.objects.filter(player_id=self.player.id, round_id=round_obj.id).exists():
+            print(f"AVISO: O jogador {self.player.nickname} já jogou nesta rodada!")
             return
 
         # Calcula distância para debug
