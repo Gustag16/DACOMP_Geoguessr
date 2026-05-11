@@ -9,10 +9,11 @@ import Timer from "../components/gameSession/Timer";
 import GuessButton from "../components/gameSession/GuessButton";
 import Score from "../components/gameSession/Score";
 import { useNavigate, useParams } from "react-router-dom";
-import { useCallback, useState, useEffect, useRef } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { useSessionSocket } from "../api/ws";
 import type { LatLngExpression } from "leaflet";
 import { fetchSession } from "../api/Lobby/LobbyServices";
+import { fetchRoundUrl } from "../api/GameSession/GameSessionServices";
 import type { Player } from '../utils/interfaces/playerInterface'
 import type { Guess } from '../utils/interfaces/guessInterface'
 import { LatLng } from "leaflet";
@@ -37,19 +38,10 @@ export default function GameSession() {
     const [player, setPlayer] = useState<Player | null> (null)
     const [guesses, setGuesses] = useState<Guess[] | null> (null)
     const playerId = localStorage.getItem('playerId');
-
     const [time, setTime] = useState<number>(0);
-    const [sessionTimeLimit, setSessionTimeLimit] = useState<number>(0); // limite fixo por rodada
-    const [localTime, setLocalTime] = useState<number>(0); // cronômetro local
-    const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
     // estado para o ranking
     const [rankingPlayers, setRankingPlayers] = useState<any[]>([]);
     const [showRank, setShowRank] = useState<boolean>(false);
-
-    const sessionTimeLimitRef = useRef(sessionTimeLimit);
-    sessionTimeLimitRef.current = sessionTimeLimit; // sempre atualizada
-    const sessionLoadedRef = useRef(false);
 
     // escuta as mensagens do servidor
     const handleWebSocketMessage = useCallback((data: any) => {
@@ -72,21 +64,14 @@ export default function GameSession() {
          }
 
         else if(data.type === 'round_start') {
-            if (!sessionLoadedRef.current) {
-                return;
-            }
-            console.log('round_start recebido, ativando timer. isRoundActive:', isRoundActive, 'localTime:', localTime);
             setGuessPosition(null);
             setAlreadyGuessed(false);
             setCorrectPosition(null);
+            setIsRoundActive(false);
             setCurrentRoundNumber((prev) => prev + 1);
-            setLocalTime(sessionTimeLimitRef.current); // reinicia o cronômetro local com o limite da rodada
             setIsRoundActive(true);
             setShowRank(false)
-            if (data.image_url) {
-                setCurrentImageUrl(data.image_url);
-            }
-        }
+         }
               
         else if (data.type === 'round_timeout') { 
             const posicaoReal: LatLngExpression = [data.correct_lat, data.correct_lon];
@@ -103,7 +88,6 @@ export default function GameSession() {
 
         else if (data.type === 'time_update'){
             setTime(data.round_time)
-            setLocalTime(data.round_time); // sincroniza o contador local com o servidor
         }
         
     }, [playerId, navigate, code]);
@@ -111,49 +95,25 @@ export default function GameSession() {
     const {sendGuess} = useSessionSocket(code!, handleWebSocketMessage);
 
     useEffect(() => {
-        if (!code) return;
-
-        fetchSession(code)
-            .then((sessionData) => {
-                sessionLoadedRef.current = true;
-                setSessionTimeLimit(sessionData.time_limit);
-                setTime(sessionData.time_limit);
-                setLocalTime(sessionData.time_limit);
-                setCurrentRoundNumber(sessionData.current_round_number);
-                console.log("Dados da sessão:", sessionData);
-                // Não busca imagem aqui – o WebSocket enviará no round_start
-            })
-            .catch((error) => {
-            if (error.response?.status === 404) {
-                alert("Sessão não encontrada!");
-                navigate('/');
-            }
-            console.error("Error fetching session data:", error);
-        });
-    }, [code, navigate]); // remova currentRoundNumber da dependência
-
-    // Cronômetro local
-    useEffect(() => {
-        if (!isRoundActive) {
-            return;
+        if (code) {
+            fetchSession(code)
+                .then((sessionData) => {
+                    setTime(sessionData.time_limit);
+                    setCurrentRoundNumber(sessionData.current_round_number);
+                    console.log("Dados da sessão:", sessionData);
+                    // Pega a url da imagem do round atual
+                    return fetchRoundUrl(code, sessionData.current_round_number);
+                })
+                .then((roundData) => {
+                    setCurrentImageUrl(roundData.image_url);
+                    console.log("URL da imagem:", roundData.image_url);
+                })
+                .catch((error) => {
+                    console.error("Error fetching session data:", error);
+                });
         }
+    }, [code, currentRoundNumber]);
 
-        timerIntervalRef.current = setInterval(() => {
-            setLocalTime(prev => {
-            if (prev <= 1) {
-                return 0; // não negativo
-            }
-            return prev - 1;
-            });
-        }, 1000);
-
-        return () => {
-            if (timerIntervalRef.current) {
-            clearInterval(timerIntervalRef.current);
-            timerIntervalRef.current = null;
-            }
-        };
-    }, [isRoundActive]); // dependência apenas da ativação da rodada
 
     // função chamada quando o player clica no botão de guess
     const handleConfirmGuess = () => {
@@ -181,7 +141,7 @@ export default function GameSession() {
             <div className="absolute top-4 left-0 right-0 z-10 flex flex-col items-center gap-4 pointer-events-none">
                 
                 <div className="flex gap-8 pointer-events-auto">
-                    <Timer key={currentRoundNumber} initialSeconds={localTime} isActive={isRoundActive} />
+                    <Timer key={currentRoundNumber} initialSeconds={time} isActive={isRoundActive} />
                     <Score score={player?.score || 0} />
                     <CurrentRound currentRoundNumber={currentRoundNumber} />
                 </div>
