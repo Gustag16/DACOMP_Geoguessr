@@ -23,15 +23,34 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = config('SECRET_KEY')
+
+from urllib.parse import urlparse
+
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config('DEBUG', default=True, cast=bool)
+
+PUBLIC_TUNNEL_URL = config('PUBLIC_TUNNEL_URL', default='').strip().rstrip('/')
+EXTRA_ALLOWED_HOSTS = config('EXTRA_ALLOWED_HOSTS', default='').strip()
 
 ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
     '0.0.0.0',
-    'nearby-dare-hammer-leather.trycloudflare.com'
+    '.trycloudflare.com',
 ]
+
+if PUBLIC_TUNNEL_URL:
+    parsed_tunnel = urlparse(
+        PUBLIC_TUNNEL_URL if '://' in PUBLIC_TUNNEL_URL else f'https://{PUBLIC_TUNNEL_URL}'
+    )
+    if parsed_tunnel.hostname and parsed_tunnel.hostname not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(parsed_tunnel.hostname)
+
+if EXTRA_ALLOWED_HOSTS:
+    for host in [h.strip() for h in EXTRA_ALLOWED_HOSTS.split(',') if h.strip()]:
+        host_clean = urlparse(host).hostname if '://' in host else host
+        if host_clean and host_clean not in ALLOWED_HOSTS:
+            ALLOWED_HOSTS.append(host_clean)
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
@@ -151,50 +170,62 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # CORS
 
 # CSRF Configuration
-CSRF_COOKIE_HTTPONLY = False  # Permite JavaScript acessar
-CSRF_COOKIE_SAMESITE = 'Lax'  # Funciona com cross-site em HTTP
-CSRF_COOKIE_AGE = 31449600  # 1 ano
-CSRF_COOKIE_NAME = 'csrftoken'
+CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_AGE = 31449600  
+CSRF_COOKIE_NAME = 'csrf_token' # Alinhado com o que o api.ts espera
 CSRF_COOKIE_DOMAIN = None
 
+# Comportamento dinâmico: HTTP local vs HTTPS remoto
 if DEBUG:
     CSRF_COOKIE_SECURE = False
+    CSRF_COOKIE_SAMESITE = 'Lax'
+else:
+    CSRF_COOKIE_SECURE = True
+    CSRF_COOKIE_SAMESITE = 'None'
 
 CSRF_TRUSTED_ORIGINS = [
+    'http://localhost',
+    'http://127.0.0.1',
     'http://localhost:5173',
     'http://localhost:8000',
     'http://127.0.0.1:5173',
     'http://127.0.0.1:8000',
-    'https://localhost:5173',
-    'https://localhost:8000',
-    'https://127.0.0.1:5173',
-    'https://127.0.0.1:8000',
-    'http://*.localhost:5173',
-    'http://*.localhost:8000',
-    'http://*.127.0.0.1:5173',
-    'http://*.127.0.0.1:8000',
     'http://0.0.0.0:8000',
-    'https://consequences-achieved-atlas-notre.trycloudflare.com'
-
+    'https://*.trycloudflare.com',
 ]
 
 # CORS Configuration
 CORS_ALLOWED_ORIGINS = [
+    'http://localhost',
+    'http://127.0.0.1',
     'http://localhost:5173',
     'http://localhost:8000',
     'http://127.0.0.1:5173',
     'http://127.0.0.1:8000',
-    'https://localhost:5173',
-    'https://localhost:8000',
-    'https://127.0.0.1:5173',
-    'https://127.0.0.1:8000',
-    'http://*.localhost:5173',
-    'http://*.localhost:8000',
-    'http://*.127.0.0.1:5173',
-    'http://*.127.0.0.1:8000',
     'http://0.0.0.0:8000',
-    'https://consequences-achieved-atlas-notre.trycloudflare.com'
 ]
+
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https://[\w-]+\.trycloudflare\.com$",
+]
+
+if PUBLIC_TUNNEL_URL:
+    tunnel_origin = (
+        PUBLIC_TUNNEL_URL if '://' in PUBLIC_TUNNEL_URL else f'https://{PUBLIC_TUNNEL_URL}'
+    )
+    if tunnel_origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(tunnel_origin)
+    if tunnel_origin not in CORS_ALLOWED_ORIGINS:
+        CORS_ALLOWED_ORIGINS.append(tunnel_origin)
+
+if EXTRA_ALLOWED_HOSTS:
+    for item in [h.strip().rstrip('/') for h in EXTRA_ALLOWED_HOSTS.split(',') if h.strip()]:
+        origins = [item] if '://' in item else [f'https://{item}', f'http://{item}']
+        for origin in origins:
+            if origin not in CSRF_TRUSTED_ORIGINS:
+                CSRF_TRUSTED_ORIGINS.append(origin)
+            if origin not in CORS_ALLOWED_ORIGINS:
+                CORS_ALLOWED_ORIGINS.append(origin)
 
 CORS_ALLOW_CREDENTIALS = True
 CORS_EXPOSE_HEADERS = ["Content-Type", "X-CSRFToken"]

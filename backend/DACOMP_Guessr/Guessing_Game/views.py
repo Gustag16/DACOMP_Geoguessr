@@ -41,12 +41,11 @@ def set_csrf_token(request):
     response.set_cookie(
         'csrf_token',
         get_token(request),
-        max_age=CSRF_COOKIE_AGE,
+        max_age=settings.CSRF_COOKIE_AGE,
         httponly=False,
-        samesite='None',
-        secure=settings.CSRF_COOKIE_SECURE  # Usa a configuração do settings
+        samesite=settings.CSRF_COOKIE_SAMESITE, # 'Lax' localmente, 'None' remoto
+        secure=settings.CSRF_COOKIE_SECURE
     )
-
     return response
 
 
@@ -149,9 +148,10 @@ def start_game(session_code):
     channel_layer = get_channel_layer()
     session_group = f"session_{session_code}"
     
-    # Atualiza status para PLAYING
+    # Atualiza status para PLAYING e reseta o timestamp do round
     session.status = Session.Status.PLAYING
     session.current_round_number = 1
+    session.round_started_at = timezone.now()
     session.save()
     
     # Inicia thread com a função independente
@@ -179,7 +179,7 @@ class SessionViewSet(viewsets.ModelViewSet):
             new_status = data.get("status")
             if new_status in dict(Session.Status.choices):
                 session.status = new_status
-                session.save()
+                session.save(update_fields=["status"])
 
                 if(new_status == Session.Status.PLAYING):
                     # Notifica todos os jogadores via WebSocket
@@ -238,65 +238,26 @@ class RoundViewSet(viewsets.ModelViewSet):
     def get_current_round_image(self, request):
         round_number = request.query_params.get('round_number')
         session_code = request.query_params.get('session_code')
-        
+
         if not session_code or not round_number:
             return JsonResponse({"error": "session_code and round_number are required"}, status=400)
-        
+
         try:
             session = Session.objects.get(code=session_code)
-            round_obj = Round.objects.get(session_id=session.id, round_number=round_number)
-            
-            # Cria o diretório se não existir
-            media_dir = os.path.join(settings.MEDIA_ROOT, 'round_images', session_code)
-            os.makedirs(media_dir, exist_ok=True)
-            
-            filename = f"round_{round_number}_session_{session_code}.jpg"
-            file_path = os.path.join(media_dir, filename)
-            
-            # URL que será acessada pelo frontend
-            image_url = f"{settings.MEDIA_URL}round_images/{session_code}/{filename}"
-            
-            # Verifica se o arquivo já existe
-            if os.path.exists(file_path):
-                return JsonResponse({
-                    "image_url": image_url,
-                    "round_number": round_number,
-                    "session_code": session_code
-                })
-            
-            # Baixa a imagem
-            original_url = round_obj.location.image_url
-            response = requests.get(original_url, timeout=10)
-            
-            if response.status_code != 200:
-                return JsonResponse({"error": "Erro ao baixar imagem externa"}, status=502)
-            
-            # Salva a imagem
-            with open(file_path, 'wb') as f:
-                f.write(response.content)
-            
+            round_obj = Round.objects.select_related("location").get(
+                session_id=session.id,
+                round_number=round_number
+            )
+            image_url = round_obj.location.ensure_webp_url()
+
             return JsonResponse({
                 "image_url": image_url,
                 "round_number": round_number,
                 "session_code": session_code,
-                "message": "Imagem baixada e disponibilizada com sucesso"
             })
-            
         except Session.DoesNotExist:
             return JsonResponse({"error": "Sessão não encontrada"}, status=404)
         except Round.DoesNotExist:
             return JsonResponse({"error": "Round não encontrado"}, status=404)
         except Exception as e:
             return JsonResponse({"error": f"Erro interno: {str(e)}"}, status=500)
-
-# ==================
-        except Session.DoesNotExist:
-            return JsonResponse(
-                {"error": f"Session with code '{session_code}' not found"}, 
-                status=404
-            )
-        except Round.DoesNotExist:
-            return JsonResponse(
-                {"error": f"Round {round_number} not found for session {session_code}"}, 
-                status=404
-            )

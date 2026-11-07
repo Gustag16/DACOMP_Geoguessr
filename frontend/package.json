@@ -1,6 +1,0 @@
-{
-  "dependencies": {
-    "react-use-websocket": "^4.13.0",
-    "ws": "^8.19.0"
-  }
-}

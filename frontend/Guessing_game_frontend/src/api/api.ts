@@ -5,8 +5,20 @@
 // Verificação de ambiente
 import axios from 'axios'
 const dev = import.meta.env.DEV
+const publicUrl = import.meta.env.VITE_PUBLIC_URL?.trim().replace(/\/$/, '')
+
+function resolveApiBaseUrl(): string {
+  if (publicUrl) {
+    return publicUrl.endsWith('/api') ? publicUrl : `${publicUrl}/api`
+  }
+  if (dev && import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL
+  }
+  return `${window.location.origin}/api`
+}
+
 export const api = axios.create({
-  baseURL: dev ? import.meta.env.VITE_API_URL : '/api',
+  baseURL: resolveApiBaseUrl(),
   withCredentials: true,
   xsrfCookieName: 'csrf_token',
   xsrfHeaderName: 'X-CSRFToken',
