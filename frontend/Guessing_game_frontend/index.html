@@ -2,10 +2,37 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>DACOMP Geoguessr</title>
+
+    <link id="favicon" rel="icon" type="image/png" href="/logo_light.png" />
+
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        const favicon = document.getElementById('favicon');
+        
+        function updateFavicon() {
+          if (!favicon) return; // Evita erros caso o elemento não seja encontrado
+          
+          const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          const timestamp = new Date().getTime(); // Gera um número único para quebrar o cache
+          
+          if (isDarkMode) {
+            favicon.href = `/logo_dark.png?v=${timestamp}`; 
+          } else {
+            favicon.href = `/logo_light.png?v=${timestamp}`;  
+          }
+        }
+
+        // Executa ao carregar
+        updateFavicon();
+
+        // Escuta mudanças de tema em tempo real
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateFavicon);
+      });
+    </script>
   </head>
+
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
