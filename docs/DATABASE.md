@@ -33,7 +33,7 @@ Sessão de jogo (uma sala).
 | `current_round_number` | `IntegerField` default `0`  | Rodada atual (0 = lobby)                       |
 | `status`             | `CharField` choices           | `INACTIVE` \| `LOBBY` \| `PLAYING` \| `FINISHED` |
 | `created_at`         | `DateTimeField` auto          |                                                |
-| `round_started_at`   | `DateTimeField` default now   | Referência para o tempo do palpite             |
+| `round_started_at`   | `DateTimeField` default now   | Referência absoluta de início da rodada para cálculo de tempo e sincronia |
 
 ### `Location`
 Uma localização (foto + coordenadas reais).
@@ -41,11 +41,13 @@ Uma localização (foto + coordenadas reais).
 | Campo        | Tipo               | Descrição                          |
 | ------------ | ------------------ | ---------------------------------- |
 | `id`         | PK (auto)          |                                    |
-| `image_url`  | `URLField`         | URL da foto (Google Drive)         |
+| `image_url`  | `URLField(500)`    | Caminho local da foto convertida em WebP (`/media/locations/location_{id}.webp`), gerada a partir da URL original |
 | `latitude`   | `FloatField`       | Lat real da foto                   |
 | `longitude`  | `FloatField`       | Lon real da foto                   |
 | `place_name` | `CharField(100)` blank | Nome do lugar                  |
 | `category`   | `CharField(50)` default `"Norte"` | Categoria da localização |
+
+> Ao salvar uma `Location` (ou chamar `ensure_webp_url()`), o método `convert_to_webp()` baixa a imagem original (caso seja uma URL externa), redimensiona para no máximo `1920x1080` (`Image.LANCZOS`), converte para `.webp` (`quality=80`) em `media/locations/` e atualiza `image_url`.
 
 ### `Round`
 Associa uma `Location` a uma rodada de uma `Session`.
@@ -101,10 +103,9 @@ Palpite de um jogador em uma rodada.
 
 Na inicialização (`backend/DACOMP_Guessr/entrypoint.sh`) roda:
 1. `makemigrations` / `migrate`
-2. `create_default_admin` — superusuário `admin` / `admin123` (configurável via
-   `DJANGO_SUPERUSER_*`).
+2. `create_default_admin` — superusuário configurado via `DJANGO_SUPERUSER_*` no `.env` da raiz (fallback padrão: `admin` / `admin123`).
 3. `seeder` — popula `Location`, `Session` e `Round` a partir dos CSVs em
-   `Guessing_Game/management/seeders/`.
+   `Guessing_Game/management/seeders/`. O `seeder_location.py` converte todas as imagens para `.webp` durante a carga e utiliza `bulk_create(..., ignore_conflicts=True)` para evitar conflitos de chave primária.
 
 As sessões mais comuns (definidas em `sessions.csv`):
 
@@ -115,6 +116,3 @@ As sessões mais comuns (definidas em `sessions.csv`):
 | NORT   | Área Norte        | 15      | 60    | 60     |
 | RAND   | Sessão Mista      | 20      | 40    | 60     |
 | 200c   | SUPER FAST ROUNDS | 48      | 10    | 60     |
-
-> O arquivo `init_db.sh` na raiz também carrega `Location_satellite.csv` direto no
-> Postgres na primeira inicialização do container (`docker-entrypoint-initdb.d`).

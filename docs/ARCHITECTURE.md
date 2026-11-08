@@ -39,19 +39,21 @@ O sistema é dividido em três partes:
 
 Usado para tudo que é pontual:
 
+- Obter cookie de proteção CSRF (`/api/set-csrf-token/`), adaptando dinamicamente `SameSite=Lax` (dev HTTP) e `SameSite=None; Secure` (produção HTTPS).
 - Criar/listar/editar sessões, jogadores, localizações e rodadas (`/api/*`).
 - Host iniciar o jogo (`update_status` + `initialize_rounds`).
-- Buscar a imagem da rodada atual (`/api/rounds/current-image/`).
+- Buscar a imagem da rodada atual (`/api/rounds/current-image/` — mantido como endpoint auxiliar).
 - Proxy de download das imagens do Google Drive (`/proxy/`).
 
 ### WebSocket (tempo real)
 
-Usado para o que precisa ser broadcast para todos na sala:
+Usado para o que precisa ser broadcast ou sincronizado em tempo real para todos na sala:
 
-- Entrar/reconectar na sala (`join`, `reconnect`).
+- Entrar/reconectar na sala (`join`, `reconnect`) e reidratar o estado completo da partida (`sync_request` → `sync_state`).
+- Manter a conexão ativa no Cloudflare Tunnel via heartbeat (`ping` → `pong` a cada 25s).
 - Atualização da lista de jogadores e avatares.
-- Loop do jogo: início de rodada, countdown, fim de rodada e resultado final.
-- Envio de palpites (`submit_guess`) e resposta com a pontuação.
+- Loop do jogo: início de rodada (`round_start` com timestamps, imagem atual e fila de preload), confirmação periódica de tempo (`time_update` a cada 5s), fim de rodada (`round_timeout`) e resultado final.
+- Envio de palpites (`submit_guess`), resposta com a pontuação (`guess_received`) e encerramento antecipado da rodada quando todos os jogadores conectados já palpitaram.
 
 Todo cliente conectado em uma mesma sessão entra no grupo `session_{code}` do
 channel layer. As mensagens do jogo são enviadas para esse grupo.
@@ -80,13 +82,14 @@ sequenceDiagram
 
     H->>BE: POST /api/sessions/{code}/update_status/ {status: PLAYING}
     H->>BE: POST /api/sessions/{code}/initialize_rounds/ {nickname: "ULTRAHOST"}
-    BE->>BE: spawn thread run_game_loop()
+    BE->>BE: spawn thread run_game_loop() (aguarda 1.5s p/ transição de tela)
     loop Cada round (1..total_rounds)
-        BE-->>FE: WS round_start
-        BE-->>FE: WS time_update (countdown)
-        FE->>BE: WS submit_guess {latitude, longitude}
-        BE->>BE: calcula distância + pontuação
+        BE-->>FE: WS round_start {timestamps, current_image_url, preload_urls}
+        BE-->>FE: WS time_update (sincronia a cada 5s)
+        FE->>BE: WS submit_guess {latitude, longitude, player_id}
+        BE->>BE: calcula distância + pontuação (com Grace Period de 2s)
         BE-->>FE: WS guess_received {score, total_score}
+        Note over BE,FE: Encerra imediatamente se todos conectados palpitaram (skip) ou ao fim do tempo
         BE-->>FE: WS round_timeout {correta, guesses, players}
     end
     BE-->>FE: WS session_status_update {status: FINISHED, players rank}
@@ -94,8 +97,7 @@ sequenceDiagram
 ```
 
 Detalhe importante: o host inicia o jogo por **REST** (`initialize_rounds`), que
-dispara uma thread com o `run_game_loop` (em `Guessing_Game/gamelogic.py`). Depois
-disso, tudo é conduzido pelo WebSocket.
+dispara uma thread com o `run_game_loop` (em `Guessing_Game/gamelogic.py`). O cronômetro na tela dos jogadores é calculado localmente a partir dos timestamps absolutos (`round_started_at` e `server_now`), eliminando problemas de *jitter* na rede.
 
 ## Pontuação
 
@@ -111,15 +113,14 @@ Definida em `Guessing_Game/consumers.py` (`calculate_score`):
 Ou seja: acerto perfeito vale até 1000 pontos, e cada segundo economizado no
 palpite adiciona até 250 pontos ao "peso" da distância.
 
-## Imagens das localizações
+> **Grace Period (Tolerância de Latência):** palpites que chegam ao servidor até `2.0s` (`GRACE_PERIOD_SECONDS`) após o término de `time_limit` ainda são aceitos para não penalizar jogadores com latência de rede, tendo seu `tempo_restante` travado em `0` (pontuam apenas pela distância).
 
-As fotos ficam no Google Drive. Cada `Location` guarda a `image_url` do Drive. Duas
-formas de acesso:
+## Imagens das localizações (WebP + Look-Ahead Cache)
 
-- `Location.image_url` direta (usada durante o lobby/seed).
-- `GET /api/rounds/current-image/` — o backend baixa a imagem uma vez, salva em
-  `media/round_images/{session_code}/` e serve pela `MEDIA_URL`. Em produção o
-  frontend usa essa rota para não expor o Drive.
+As fotos originais são referenciadas nos CSVs de seed (ex.: links do Google Drive) e otimizadas automaticamente pelo backend:
+
+1. **Conversão para WebP no Backend:** durante o `seeder` (ou ao salvar uma `Location`), o método `Location.convert_to_webp()` baixa a imagem original, redimensiona para no máximo `1920x1080` (`Image.LANCZOS`), comprime em formato `.webp` (`quality=80`) na pasta `media/locations/location_{id}.webp` e salva o caminho `/media/locations/location_{id}.webp` no campo `image_url`.
+2. **Entrega via WebSocket e Look-Ahead Preload:** o evento `round_start` (assim como o `sync_state`) envia diretamente a `current_image_url` da rodada `N` e o array `preload_urls` com as imagens das rodadas `N+1` e `N+2`. Assim que a imagem da rodada atual termina de carregar na tela (`onLoad`), o frontend faz o *preload* silencioso em segundo plano das duas próximas rodadas. Em produção, o Nginx serve `/media/` diretamente do disco com cabeçalhos `Cache-Control: public, max-age=604800, immutable`.
 
 ## Estrutura de pastas (backend)
 
@@ -127,17 +128,19 @@ formas de acesso:
 backend/DACOMP_Guessr/
 ├── DACOMP_Guessr/            # projeto Django (settings, urls, asgi)
 ├── Guessing_Game/            # app principal
-│   ├── models.py             # Session, Location, Round, Player, Guess
+│   ├── models.py             # Session, Location (conversão WebP), Round, Player, Guess
 │   ├── serializers.py        # DRF serializers
 │   ├── views.py              # ViewSets + proxy + CSRF + start_game
-│   ├── consumers.py          # WebSocket (entrada, palpites, pontuação)
-│   ├── gamelogic.py           # loop do jogo (paralelo, via thread)
+│   ├── consumers.py          # WebSocket (entrada, sync_state, palpites, pontuação)
+│   ├── gamelogic.py          # loop do jogo (paralelo, via thread, com skip de rodada)
 │   ├── routing.py            # rotas do WebSocket
 │   └── management/
 │       ├── commands/
 │       │   ├── seeder.py             # seed de locations/sessions/rounds
 │       │   └── create_default_admin.py
 │       └── seeders/                  # CSVs + scripts de seed
+├── media/
+│   └── locations/            # imagens convertidas e otimizadas em .webp
 ├── Dockerfile
 ├── entrypoint.sh             # migrações + admin + seed + runserver
 └── requirements.txt
