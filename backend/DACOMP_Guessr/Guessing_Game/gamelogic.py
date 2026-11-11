@@ -37,7 +37,8 @@ def run_game_loop(session_id, channel_layer, session_group):
     session.current_round_number = 1
     session.save()
 
-    # zera os pontos de todo mundo antes do jogo iniciar
+    # Remove jogadores desconectados órfãos e zera os pontos dos conectados
+    Player.objects.filter(session=session, is_connected=False).delete()
     Player.objects.filter(session=session).update(score=0, last_round_score=0)
 
     # Aguarda os clientes navegarem do Lobby para a tela de GameSession
@@ -224,6 +225,7 @@ def run_game_loop(session_id, channel_layer, session_group):
 
     ROUND_SKIP_EVENTS.pop(str(session.id), None)
 
+    Player.objects.filter(session=session, is_connected=False).delete()
     Player.objects.filter(session=session).update(
         last_round_score=0,
         score=0,

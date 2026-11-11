@@ -23,8 +23,8 @@ export function useSessionSocket(
   onMessage?: (data: any) => void,
   autoReconnect = true
 ) {
-  const normalizedSessionCode = sessionCode.trim().toUpperCase();
-  const socketUrl = `${resolveWsBaseUrl()}/lobby/${normalizedSessionCode}/`;
+  const sessionCodeValue = sessionCode.trim();
+  const socketUrl = `${resolveWsBaseUrl()}/lobby/${sessionCodeValue}/`;
   const { sendMessage, readyState } = useWebSocket(socketUrl, {
     onOpen: () => {
       console.log('ws open');
@@ -35,7 +35,7 @@ export function useSessionSocket(
         sendMessage(JSON.stringify({
           action: "reconnect",
           player_id: playerId,
-          session_code: normalizedSessionCode
+          session_code: sessionCodeValue
         }));
       } else if (autoReconnect) {
         sendMessage(JSON.stringify({

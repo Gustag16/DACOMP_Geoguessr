@@ -90,9 +90,8 @@ class PlayerConsumer(WebsocketConsumer):
         )
     
     def notify_players_update(self):
-        """Envia a lista atualizada de jogadores para todos na sala"""
-        # Busca todos os jogadores da sessão (incluindo desconectados)
-        all_players = Player.objects.filter(session=self.session)
+        """Envia a lista atualizada de jogadores conectados para todos na sala"""
+        all_players = Player.objects.filter(session=self.session, is_connected=True)
         
         player_list = [{
             'id': str(p.id),
@@ -165,23 +164,27 @@ class PlayerConsumer(WebsocketConsumer):
             except Player.DoesNotExist:
                 existing_player = None
         
+        default_avatar = {
+            'head': 'redonda',
+            'face': 'feliz',
+            'acc': 'nenhum',
+            'color': 'azul'
+        }
+
         if existing_player:
-            # Reativa
+            # Reativa e sincroniza com a predefinição atual do jogador
+            existing_player.nickname = nickname
+            existing_player.avatar_config = avatar_config or existing_player.avatar_config or default_avatar
             existing_player.is_connected = True
             existing_player.is_ready = False
             existing_player.save()
             player = existing_player
         else:
-            # Cria novo
+            # Cria novo usando o avatar enviado pelo frontend
             player = Player.objects.create(
                 session=self.session,
                 nickname=nickname,
-                avatar_config={
-                    'head': 'redonda',
-                    'face': 'feliz',
-                    'acc': 'chapeu',
-                    'color': 'azul'
-                },
+                avatar_config=avatar_config or default_avatar,
                 is_connected=True
             )
             new = True

@@ -35,16 +35,24 @@ export default function Lobby() {
     ];
     */
 
-        const [avatarConfig, setAvatarConfig] = useState<PlayerAvatarProps>
-    ({
-        head: 'redonda',
-        face: 'feliz',
-        acc: 'nenhum',
-        color: 'azul'
+    const [avatarConfig, setAvatarConfig] = useState<PlayerAvatarProps>(() => {
+        const saved = localStorage.getItem('savedAvatarConfig');
+        if (saved) {
+            try {
+                return JSON.parse(saved);
+            } catch {
+                // fallback caso o JSON seja inválido
+            }
+        }
+        return {
+            head: 'redonda',
+            face: 'feliz',
+            acc: 'nenhum',
+            color: 'azul'
+        };
     });
 
     function handleStyleChange(categoria: 'head' | 'face' | 'acc' | 'color', direcao: 'next' | 'prev') {
-        // decidir a lista correta de acordo com o parametro
         let listaAtual: string[] = [];
         if (categoria === 'face') listaAtual = facesList;
         if (categoria === 'head') listaAtual = headsList;
@@ -53,33 +61,34 @@ export default function Lobby() {
 
         const valorAtual = avatarConfig[categoria];
         const indexAtual = listaAtual.indexOf(valorAtual);
-        let novoIndex = 0; 
-        // calcular o prox index
+        let novoIndex = 0;
+
         if (direcao === 'next') {
             novoIndex = indexAtual + 1;
-            // se passar do limite, volta pro zero (dá a volta)
             if (novoIndex >= listaAtual.length) {
                 novoIndex = 0;
             }
         } else if (direcao === 'prev') {
             novoIndex = indexAtual - 1;
-            // se for menor que zero, vai pro último item da lista (dá a volta)
             if (novoIndex < 0) {
                 novoIndex = listaAtual.length - 1;
             }
         }
 
-        // atualiza o estado do React com o novo valor
-        setAvatarConfig({
-            ...avatarConfig, // mantém as outras configurações iguais
-            [categoria]: listaAtual[novoIndex] // atualiza só a categoria que mudou
-        });
-
+        const updatedConfig = {
+            ...avatarConfig,
+            [categoria]: listaAtual[novoIndex]
+        };
+        setAvatarConfig(updatedConfig);
+        localStorage.setItem('savedAvatarConfig', JSON.stringify(updatedConfig));
     }
 
-    const [sessionPlayers, setSessionPlayers] = useState<Player[]>([])
+    const [sessionPlayers, setSessionPlayers] = useState<Player[]>([]);
 
-    const [ownName, setOwnName] = useState("Gustavo");
+    const [ownName, setOwnName] = useState<string>(() => {
+        return localStorage.getItem('savedNickname') || 'Jogador';
+    });
+
     const [playerId, setPlayerId] = useState<string | null>(() => {
         // Inicializa com o localStorage
         return localStorage.getItem('playerId');
@@ -303,6 +312,7 @@ export default function Lobby() {
                     onStyleChange={handleStyleChangeWithReadyReset}
                     onNameChange={(name) => {
                         setOwnName(name);
+                        localStorage.setItem('savedNickname', name);
                         if (isReady) setReadyStatus(false);
                     }}
                 >
