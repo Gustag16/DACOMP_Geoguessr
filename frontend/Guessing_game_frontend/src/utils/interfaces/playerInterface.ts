@@ -11,6 +11,7 @@ interface Player {
     score: number;
     last_round_score: number;
     is_connected: boolean;
+    is_ready: boolean;
 }
 
 

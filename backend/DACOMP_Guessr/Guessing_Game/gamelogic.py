@@ -205,6 +205,10 @@ def run_game_loop(session_id, channel_layer, session_group):
         for p in final_players
     ]
 
+    session.current_round_number = 0
+    session.status = Session.Status.LOBBY
+    session.save(update_fields=["current_round_number", "status"])
+
     async_to_sync(channel_layer.group_send)(
         session_group,
         {
@@ -216,14 +220,12 @@ def run_game_loop(session_id, channel_layer, session_group):
     )
     
     # Atualiza status da sessão
-    session.status = Session.Status.FINISHED
-    session.save()
-
     Guess.objects.filter(session=session).delete()
 
     ROUND_SKIP_EVENTS.pop(str(session.id), None)
 
-    Player.objects.filter(session=session).update(last_round_score=0)
-    Player.objects.filter(session=session).update(score=0)
-    session.current_round_number = 0
-    session.status = "LOBBY"
+    Player.objects.filter(session=session).update(
+        last_round_score=0,
+        score=0,
+        is_ready=False,
+    )

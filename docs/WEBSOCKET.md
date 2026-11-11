@@ -92,6 +92,19 @@ Altera nickname/avatar de um jogador e avisa a sala.
 
 - Broadcast: `type: player_update`.
 
+### `set_ready`
+Salva o estado de pronto do jogador. O frontend envia esta ação ao clicar no
+botão **Pronto**, depois de salvar o nickname e o avatar atuais.
+
+```json
+{ "action": "set_ready", "ready": true }
+```
+
+Quando todos os jogadores conectados estiverem prontos, o servidor aguarda
+alguns segundos, inicia a sessão automaticamente e envia
+`session_status_update` com `status: "PLAYING"`. Alterar o avatar ou nickname
+desmarca o jogador como pronto.
+
 ### `submit_guess`
 Envia o palpite do jogador na rodada atual.
 

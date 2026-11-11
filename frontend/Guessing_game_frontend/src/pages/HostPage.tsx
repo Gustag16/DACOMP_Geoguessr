@@ -53,6 +53,13 @@ export default function HostPage() {
 
     function handleStartRoundsLogic(selectedSessionId: string) {
         startRoundManual(selectedSessionId)
+        .then(() => {
+                alert("Round started!");
+            })
+            .catch((error) => {
+                console.error("Error starting round:", error);
+                alert("Failed to start the round. Please try again.");
+            });
     }
 
     

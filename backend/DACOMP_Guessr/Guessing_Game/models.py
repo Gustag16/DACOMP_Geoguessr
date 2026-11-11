@@ -146,6 +146,7 @@ class Player(models.Model):
 
     nickname = models.CharField(max_length=30)
     is_connected = models.BooleanField(default=True)
+    is_ready = models.BooleanField(default=False)
 
     avatar_config = models.JSONField(default=dict)
 

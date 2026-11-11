@@ -2,7 +2,7 @@ import CodeBox from '../components/Lobby/CodeBox'
 import PlayerCard from '../components/Lobby/PlayerCard'
 import PlayerEdit from '../components/Lobby/PlayerEdit'
 import PlayerAvatar from '../components/Lobby/PlayerAvatar'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import type { PlayerAvatarProps } from '../components/Lobby/PlayerAvatar' // utiliza as props do avatar como o tipo
 import { facesList, headsList, accsList, colorsList } from '../components/Lobby/PlayerAvatar'
 import type { Player } from '../utils/interfaces/playerInterface'
@@ -20,6 +20,8 @@ interface WebSocketMessage {
     status?: string;
     new?: boolean;
     nickname?: string;
+    ready?: boolean;
+    message?: string;
 }
 
 export default function Lobby() {
@@ -83,6 +85,8 @@ export default function Lobby() {
         return localStorage.getItem('playerId');
     });
     const [hasJoined, setHasJoined] = useState(false);
+    const joiningRef = useRef(false);
+    const [isReady, setIsReady] = useState(false);
     const [session, setSession] = useState<Session | null>(null)
     const [playerQtd, setPlayerQtd] = useState(0);
     const navigate = useNavigate();
@@ -92,10 +96,15 @@ export default function Lobby() {
     const handleWebSocketMessage = useCallback((data: WebSocketMessage) => {
     switch (data.type) {
         case 'join_success':
+            joiningRef.current = false;
             setHasJoined(true);
             if (data.new === true) {
             setPlayerId(data.id!);
             localStorage.setItem('playerId', data.id!);
+            }
+            if (data.new !== true && data.id) {
+                setPlayerId(data.id);
+                localStorage.setItem('playerId', data.id);
             }
             setOwnName(data.nickname!)
             setAvatarConfig({
@@ -107,6 +116,13 @@ export default function Lobby() {
             
 
 
+        break;
+        case 'error':
+        if (data.message === 'Jogador não encontrado para reconexão') {
+            joiningRef.current = false;
+            setPlayerId(null);
+            setHasJoined(false);
+        }
         break;
         case 'players_list':
             console.log("Recebida lista de jogadores:", data.players);
@@ -125,6 +141,7 @@ export default function Lobby() {
             last_round_score: p.last_round_score,
             session: p.session,
             is_connected: p.is_connected,
+            is_ready: p.is_ready,
             })).filter((p: Player) => p.id !== playerId)
             );
             break;
@@ -144,7 +161,8 @@ export default function Lobby() {
             score: data.player!.score,
             last_round_score: data.player!.last_round_score,
             session: data.player!.session,
-            is_connected: data.player!.is_connected
+            is_connected: data.player!.is_connected,
+            is_ready: data.player!.is_ready
             };
             setSessionPlayers((prevPlayers) => {
             const existingIndex = prevPlayers.findIndex(p => p.id === newPlayer.id);
@@ -169,7 +187,13 @@ export default function Lobby() {
             break;
         }}, [playerId, code, navigate]
     );
-    const { join, isConnected, updateAvatar } = useSessionSocket(code!, handleWebSocketMessage); 
+    const { join, isConnected, updateAvatar, setReady } =
+        useSessionSocket(code ?? '', handleWebSocketMessage, false);
+
+    function setReadyStatus(ready: boolean) {
+        setReady(ready);
+        setIsReady(ready);
+    }
 
 
     const filterOwnerName = (name: string): string => {
@@ -196,17 +220,39 @@ export default function Lobby() {
         await updateAvatar(id,config,newName);    
     }
 
+    function handleStyleChangeWithReadyReset(
+        categoria: 'head' | 'face' | 'acc' | 'color',
+        direcao: 'next' | 'prev'
+    ) {
+        handleStyleChange(categoria, direcao);
+        if (isReady) {
+            setReadyStatus(false);
+        }
+    }
+
+    async function handleReady() {
+        if (!playerId) return;
+        if (isReady) {
+            setReadyStatus(false);
+            return;
+        }
+        await handleUpdate(playerId, avatarConfig, ownName);
+        setReadyStatus(true);
+    }
+
+    useEffect(() => {
+        if (!isConnected) {
+            joiningRef.current = false;
+            setHasJoined(false);
+        }
+    }, [isConnected]);
+
     useEffect(() => {
         try{
-        if (isConnected && !hasJoined) {
+        if (isConnected && !hasJoined && !joiningRef.current) {
             const newName = filterOwnerName(ownName);
-
-            // Primeiro, entra no lobby
+            joiningRef.current = true;
             join(newName, avatarConfig, playerId);
-            async function updateHasJoined() {
-                await setHasJoined(true);
-            }
-            updateHasJoined();
         }
     }
     catch(error){
@@ -251,9 +297,16 @@ export default function Lobby() {
             <h1 className="justify-center flex text-white text-8xl font-normal font-['Silkscreen']">GEOGUESSR_DACOMP</h1>
             <h2 className="justify-center flex mb-10 text-white text-5xl font-normal font-['Silkscreen'] m-7">-=LOB=-</h2>
 
-            <div className='justify-center flex mt-8 mb-4'>
-                <PlayerEdit ownName={ownName} onStyleChange={handleStyleChange} onNameChange={setOwnName}>
-                    <div className='ml-3'>
+            <div className='justify-center flex mt-8 mb-8'>
+                <PlayerEdit
+                    ownName={ownName}
+                    onStyleChange={handleStyleChangeWithReadyReset}
+                    onNameChange={(name) => {
+                        setOwnName(name);
+                        if (isReady) setReadyStatus(false);
+                    }}
+                >
+                    <div className='flex justify-center'>
                         <PlayerAvatar
                             head={avatarConfig.head}
                             face={avatarConfig.face}
@@ -261,28 +314,27 @@ export default function Lobby() {
                             color={avatarConfig.color}
                         />
                     </div>
+                    <div className="flex flex-row gap-4 justify-center">
+                        <button
+                        className={`group relative mt-3 px-3 py-1 text-white text-l font-normal font-['Silkscreen']
+                            rounded-xl border-2 transition-all hover:cursor-pointer ${
+                            isReady
+                                ? 'bg-green-600 border-green-300 shadow-[0_0_20px_rgba(74,222,128,0.7)]'
+                                : 'bg-fuchsia-700 border-fuchsia-300 shadow-[0_0_20px_rgba(217,70,239,0.7)] hover:bg-fuchsia-500'
+                        }`}
+                        onClick={handleReady}
+                        >
+                            {isReady ? 'Pronto!' : 'Pronto'}
+                        </button>
+                    </div>
                 </PlayerEdit>
                 
                 <CodeBox code={session?.code || ""} numPlayers={playerQtd} />
             </div>
 
-            <div className="flex flex-row gap-4 justify-center">
-                <button 
-                className="group relative mb-10 px-4 py-2 text-white text-1xl font-normal font-['Silkscreen'] hover:cursor-pointer"
-                onClick={() => handleUpdate(playerId!, avatarConfig, ownName)}
-                >
-                    <span className="absolute inset-0 z-0 bg-fuchsia-600 rounded-lg opacity-0 
-                    transition-opacity duration-200 group-hover:opacity-20"></span>
-                    
-                    <span className="relative z-10">
-                        Salvar Mudanças
-                    </span>
-                </button>
-            </div>
-
             <div className="player-list flex flex-row flex-wrap gap-4 justify-center max-w-7xl mx-auto px-4 pb-8">
                 {sessionPlayers.filter(jogador => jogador.id !== playerId && jogador.is_connected).map((jogador) => (
-                    <PlayerCard key={jogador.id} name={jogador.nickname}>
+                    <PlayerCard key={jogador.id} name={jogador.nickname} isReady={jogador.is_ready}>
                         <PlayerAvatar 
                             head={jogador.avatar?.head} 
                             face={jogador.avatar?.face} 

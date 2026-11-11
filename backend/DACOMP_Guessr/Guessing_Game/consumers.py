@@ -5,8 +5,11 @@ from channels.generic.websocket import WebsocketConsumer
 from channels.layers import get_channel_layer
 from django.utils import timezone
 from .models import Session, Player, Round, Location, Guess
-from .gamelogic import GRACE_PERIOD_SECONDS, trigger_round_skip
+from .gamelogic import GRACE_PERIOD_SECONDS, run_game_loop, trigger_round_skip
 import math
+
+STARTING_SESSIONS = set()
+STARTING_SESSIONS_LOCK = threading.Lock()
 
 
 def haversine(lat1, lon1, lat2, lon2):
@@ -68,6 +71,7 @@ class PlayerConsumer(WebsocketConsumer):
                 player = Player.objects.get(id=self.id)
                 
                 player.is_connected = False
+                player.is_ready = False
                 player.save()
                 
                 print(f"Jogador {player.nickname} desconectado")
@@ -94,7 +98,8 @@ class PlayerConsumer(WebsocketConsumer):
             'id': str(p.id),
             'nickname': p.nickname,
             'avatar_config': p.avatar_config,
-            'is_connected': p.is_connected
+            'is_connected': p.is_connected,
+            'is_ready': p.is_ready
         } for p in all_players]
         
         # Envia para todos no grupo
@@ -129,6 +134,8 @@ class PlayerConsumer(WebsocketConsumer):
             self.handle_reconnect(data)
         elif action == 'update_avatar':
             self.handle_avatar_update(data)
+        elif action == 'set_ready':
+            self.handle_set_ready(data)
         elif action == 'list_players':
             self.handle_list_players()
         elif action == 'start_round_manual':
@@ -151,7 +158,7 @@ class PlayerConsumer(WebsocketConsumer):
         avatar_config = player_data['avatar_config']
         new = False
 
-        existing_player = None
+        existing_player = getattr(self, 'player', None)
         if id:
             try:
                 existing_player = Player.objects.get(id=id, session=self.session)
@@ -161,6 +168,7 @@ class PlayerConsumer(WebsocketConsumer):
         if existing_player:
             # Reativa
             existing_player.is_connected = True
+            existing_player.is_ready = False
             existing_player.save()
             player = existing_player
         else:
@@ -391,6 +399,7 @@ class PlayerConsumer(WebsocketConsumer):
             'nickname': player.nickname,
             'avatar_config': player.avatar_config,
             'is_connected': player.is_connected,
+            'is_ready': player.is_ready,
             'session': str(player.session.id),
         } for player in players]
 
@@ -423,6 +432,7 @@ class PlayerConsumer(WebsocketConsumer):
             player = Player.objects.get(id=player_id, session=self.session)
             player.avatar_config = avatar_config
             player.nickname = player_nickname
+            player.is_ready = False
             player.save()
             
             # Notifica todos os jogadores sobre a atualização
@@ -434,7 +444,8 @@ class PlayerConsumer(WebsocketConsumer):
                         'id': str(player.id),
                         'nickname': player.nickname,
                         'avatar_config': player.avatar_config,
-                        'is_connected': player.is_connected
+                        'is_connected': player.is_connected,
+                        'is_ready': player.is_ready
                     }
                 }
             )
@@ -450,6 +461,70 @@ class PlayerConsumer(WebsocketConsumer):
             'type': 'player_update',
             'player': event['player']
         }))
+
+    def handle_set_ready(self, data):
+        if not hasattr(self, 'player'):
+            self.send(text_data=json.dumps({
+                'type': 'error',
+                'message': 'Jogador ainda não entrou na sessão'
+            }))
+            return
+
+        self.player.refresh_from_db()
+        self.player.is_ready = bool(data.get('ready', False))
+        self.player.save(update_fields=['is_ready'])
+        self.notify_players_update()
+
+        connected_players = Player.objects.filter(
+            session=self.session, is_connected=True
+        )
+        if (
+            self.player.is_ready
+            and connected_players.exists()
+            and not connected_players.filter(is_ready=False).exists()
+        ):
+            self.start_game_when_ready()
+
+    def start_game_when_ready(self):
+        with STARTING_SESSIONS_LOCK:
+            if self.session_code in STARTING_SESSIONS:
+                return
+            STARTING_SESSIONS.add(self.session_code)
+
+        def delayed_start():
+            try:
+                import time
+                time.sleep(3)
+                session = Session.objects.get(code=self.session_code)
+                players = Player.objects.filter(session=session, is_connected=True)
+                if (
+                    session.status != Session.Status.LOBBY
+                    or not players.exists()
+                    or players.filter(is_ready=False).exists()
+                ):
+                    return
+
+                session.status = Session.Status.PLAYING
+                session.current_round_number = 1
+                session.save(update_fields=['status', 'current_round_number'])
+                async_to_sync(self.channel_layer.group_send)(
+                    self.session_group,
+                    {
+                        'type': 'session_status_update',
+                        'status': 'PLAYING',
+                        'message': 'O jogo vai começar!'
+                    }
+                )
+                threading.Thread(
+                    target=run_game_loop,
+                    args=(session.id, self.channel_layer, self.session_group),
+                    daemon=True
+                ).start()
+            finally:
+                with STARTING_SESSIONS_LOCK:
+                    STARTING_SESSIONS.discard(self.session_code)
+
+        threading.Thread(target=delayed_start, daemon=True).start()
     
     def broadcast_session_status(self, status):
         """Envia o novo status da sessão para todos os jogadores"""

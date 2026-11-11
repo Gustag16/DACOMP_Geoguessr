@@ -67,7 +67,7 @@ INACTIVE  ->  LOBBY  ->  PLAYING  ->  FINISHED  ->  (volta a LOBBY)
 - `INACTIVE` — criada, ainda não usada.
 - `LOBBY` — jogadores entram na sala (status padrão). Entrada só é aceita aqui.
 - `PLAYING` — jogo em andamento.
-- `FINISHED` — jogo acabou; o frontend exibe o ranking final.
+- `FINISHED` — evento transitório enviado pelo WebSocket para exibir o ranking final; depois a sessão é persistida novamente como `LOBBY` para permitir uma nova partida na mesma sala.
 - Ao final do loop do jogo, o backend reseta a sessão de volta para `LOBBY`
   (mantendo o código, para uma nova partida).
 

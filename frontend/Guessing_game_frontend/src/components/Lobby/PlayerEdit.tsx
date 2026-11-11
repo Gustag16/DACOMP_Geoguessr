@@ -10,9 +10,9 @@ export default function PlayerEdit({ ownName, children, onStyleChange, onNameCha
   return (
     <div className="w-72 h-48 shadow-[0px_4px_4px_0px_rgba(184,184,184,0.25)] outline outline-[10px] outline-white justify-end flex" >      
       
-      <span className='mt-11'>{children}</span>
+      <span className='mt-6 ml-3'>{children}</span>
       
-      <div className='ml-3 mt-3 mr-3'>
+      <div className='mt-3 mr-3 ml-3'>
         <input 
             type="text"
             value={ownName}

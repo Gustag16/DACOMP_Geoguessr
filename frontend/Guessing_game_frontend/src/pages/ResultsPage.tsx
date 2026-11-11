@@ -1,10 +1,12 @@
 import { useLocation, useParams } from "react-router-dom"
 import PlayerAvatar from "../components/Lobby/PlayerAvatar";
+import { useNavigate } from "react-router-dom"
 
 export default function ResultsPage() {
     const location = useLocation();
     const { code } = useParams(); // pega o código da URL
     const rankingFinal = location.state?.rankingFinal || [];
+    const navigate = useNavigate()
 
     return (
         <div className="w-screen h-screen relative bg-gradient-to-b from-fuchsia-800 via-purple-950 to-slate-950 overflow-hidden text-white flex flex-col items-center justify-center relative">
@@ -56,6 +58,17 @@ export default function ResultsPage() {
                         </span>
                     </div>
                 ))}
+            </div>
+            <div>
+                <button 
+                    className="mt-2 bg-fuchsia-700 hover:bg-fuchsia-500 disabled:bg-purple-700/40 
+                        mb-8 text-white text-xl font-['Audiowide'] py-2 px-5 border-2 border-fuchsia-400 
+                        rounded-xl transition-all hover:cursor-pointer shadow-[0_0_10px_rgba(217,70,239,0.4)] 
+                        hover:shadow-[0_0_20px_rgba(217,70,239,0.8)]"
+                    onClick={() => code && navigate(`/lobby/${code}`)}
+                >
+                    Voltar ao Lobby
+                </button>
             </div>
         </div>
     )

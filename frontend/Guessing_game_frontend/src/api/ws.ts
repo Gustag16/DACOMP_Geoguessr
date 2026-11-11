@@ -18,20 +18,26 @@ function resolveWsBaseUrl(): string {
   return `${wsOrigin}/ws`;
 }
 
-export function useSessionSocket(sessionCode: string, onMessage?: (data: any) => void) {
-  const socketUrl = `${resolveWsBaseUrl()}/lobby/${sessionCode}/`;
+export function useSessionSocket(
+  sessionCode: string,
+  onMessage?: (data: any) => void,
+  autoReconnect = true
+) {
+  const normalizedSessionCode = sessionCode.trim().toUpperCase();
+  const socketUrl = `${resolveWsBaseUrl()}/lobby/${normalizedSessionCode}/`;
   const { sendMessage, readyState } = useWebSocket(socketUrl, {
     onOpen: () => {
       console.log('ws open');
 
       const playerId = localStorage.getItem("playerId");
 
-      if (playerId) {
+      if (autoReconnect && playerId) {
         sendMessage(JSON.stringify({
           action: "reconnect",
-          player_id: playerId
+          player_id: playerId,
+          session_code: normalizedSessionCode
         }));
-      } else {
+      } else if (autoReconnect) {
         sendMessage(JSON.stringify({
           type: "sync_request",
           action: "sync_request"
@@ -46,6 +52,9 @@ export function useSessionSocket(sessionCode: string, onMessage?: (data: any) =>
     onMessage: (event) => {
       const data = JSON.parse(event.data);
       if (data.type === 'pong') return;
+      if (data.type === 'error' && data.message === 'Jogador não encontrado para reconexão') {
+        localStorage.removeItem("playerId");
+      }
       console.log('Mensagem recebida:', data);
       if (onMessage) {
         onMessage(data);
@@ -69,7 +78,7 @@ export function useSessionSocket(sessionCode: string, onMessage?: (data: any) =>
     sendMessage(JSON.stringify({
       action: 'join',
       player: { 
-        id: playerId || null, // Passa o ID se tiver (reconexão) ou null (primeira vez)
+        id: playerId || null,
         nickname, 
         avatar_config: avatarConfig 
       },
@@ -95,6 +104,13 @@ export function useSessionSocket(sessionCode: string, onMessage?: (data: any) =>
       }
     }));
   } 
+
+  function setReady(ready: boolean) {
+    sendMessage(JSON.stringify({
+      action: 'set_ready',
+      ready
+    }));
+  }
 
   function sendGuess(latitude: number, longitude: number, guess_timestamp: number) {
     const playerId = localStorage.getItem("playerId");
@@ -131,6 +147,7 @@ export function useSessionSocket(sessionCode: string, onMessage?: (data: any) =>
     readyState,
     listPlayers,
     updateAvatar,
+    setReady,
     sendGuess,
     reconnect,
     requestSync,
