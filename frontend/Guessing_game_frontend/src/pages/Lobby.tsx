@@ -341,7 +341,16 @@ export default function Lobby() {
                 
                 <CodeBox code={session?.code || ""} numPlayers={playerQtd} />
             </div>
-
+            <div className='justify-center flex'>
+                <button 
+                    className="group relative px-3 py-1 mb-8 text-white text-l font-normal font-['Silkscreen']
+                            rounded-xl border-2 transition-all hover:cursor-pointer bg-fuchsia-700 
+                            border-fuchsia-300 shadow-[0_0_20px_rgba(217,70,239,0.7)] hover:bg-fuchsia-500"
+                    onClick={() => navigate(`/`)}
+                >
+                    Voltar à Home
+                </button>
+            </div>
             <div className="player-list flex flex-row flex-wrap gap-4 justify-center max-w-7xl mx-auto px-4 pb-8">
                 {sessionPlayers.filter(jogador => jogador.id !== playerId && jogador.is_connected).map((jogador) => (
                     <PlayerCard key={jogador.id} name={jogador.nickname} isReady={jogador.is_ready}>
